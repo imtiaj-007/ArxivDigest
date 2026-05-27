@@ -16,6 +16,7 @@ dependencies = [
     "httpx>=0.28",
     "langfuse>=2.50",
     "sentry-sdk>=2.18",
+    "asyncpg>=0.30",
 ]
 
 [project.scripts]
@@ -67,7 +68,7 @@ disallow_any_generics = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["langfuse.*", "langgraph.*"]
+module = ["langfuse.*", "langgraph.*", "asyncpg.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
