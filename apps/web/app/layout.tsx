@@ -1,20 +1,11 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import "./globals.css";
-import { Geist } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-});
+const geistSans = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "ArxivDigest",
@@ -27,14 +18,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)} suppressHydrationWarning>
-      <body
-        className={cn(
-          geistSans.variable,
-          geistMono.variable,
-          "flex min-h-screen flex-col",
-        )}
-      >
+    <html
+      lang="en"
+      className={cn("font-sans", geistSans.variable, geistMono.variable)}
+      suppressHydrationWarning
+    >
+      <body className="flex min-h-screen flex-col">
         <RootProvider>{children}</RootProvider>
       </body>
     </html>
