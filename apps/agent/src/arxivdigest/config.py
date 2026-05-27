@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dotenv import find_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -36,8 +37,10 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     sentry_environment: str = "development"
 
+    # find_dotenv walks up from CWD to locate a .env — lets a single repo-root .env
+    # serve every workspace without per-package duplication.
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=find_dotenv(usecwd=True) or ".env",
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
