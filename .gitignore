@@ -19,7 +19,6 @@ htmlcov/
 .venv/
 venv/
 env/
-.python-version
 
 # Node / Next.js
 node_modules/

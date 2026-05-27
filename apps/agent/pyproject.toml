@@ -1,0 +1,79 @@
+[project]
+name = "arxivdigest"
+version = "0.1.0"
+description = "Autonomous daily AI agent that summarizes arxiv papers"
+authors = [
+    { name = "SK Imtiaj Uddin", email = "imtiaj.kol@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "langgraph>=0.2",
+    "instructor>=1.6",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    "typer>=0.13",
+    "structlog>=24",
+    "httpx>=0.28",
+    "langfuse>=2.50",
+    "sentry-sdk>=2.18",
+]
+
+[project.scripts]
+arxivdigest = "arxivdigest.cli.main:app"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.7",
+    "mypy>=1.13",
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "pytest-vcr>=1",
+    "hypothesis>=6",
+    "bandit>=1.7",
+    "pre-commit>=4",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",      # pycodestyle + pyflakes
+    "I",                # isort
+    "N",                # pep8-naming
+    "UP",               # pyupgrade
+    "B",                # flake8-bugbear
+    "A",                # flake8-builtins
+    "C4",               # flake8-comprehensions
+    "SIM",              # flake8-simplify
+    "RUF",              # ruff-specific
+    "S",                # bandit-style security
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_unused_ignores = true
+disallow_any_generics = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["langfuse.*", "langgraph.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: tests that hit recorded network cassettes (VCR)",
+]
+addopts = "-ra --strict-markers"
+asyncio_mode = "auto"
