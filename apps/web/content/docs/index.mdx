@@ -1,0 +1,18 @@
+---
+title: Welcome to ArxivDigest
+description: Autonomous daily AI digest of arxiv papers — getting started.
+---
+
+## What this is
+
+ArxivDigest is an autonomous AI agent that scans the arxiv `cs.AI`, `cs.LG`, and `cs.CL` feeds every day, classifies and summarizes new submissions, and publishes a ranked digest.
+
+This documentation will cover:
+
+- How the pipeline works (ingest → classify → summarize → rank → publish)
+- Architecture decisions (ADRs)
+- How to reproduce or extend it
+
+## Stack
+
+Python (uv) + LangGraph + Groq + Voyage + Supabase + Next.js + Vercel. All free tiers, $0/month.
