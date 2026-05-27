@@ -1,0 +1,62 @@
+name: daily-digest
+
+on:
+  # 07:00 UTC daily ≈ 12:30 IST. Runs a few hours after arxiv's nightly drop
+  # so the late submissions are in. Adjust once V0 ships.
+  schedule:
+    - cron: "0 7 * * *"
+
+  # Manual trigger for ad-hoc runs + verifying the workflow without waiting for cron.
+  workflow_dispatch:
+
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false # serialize, don't cancel — partial runs would be confusing
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  digest:
+    name: Run daily digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Gates all secrets/vars below to the `production` GH environment.
+    # In repo Settings → Environments → production, lock to main branch and
+    # populate the secrets/vars listed in docs/CI_SECRETS.md.
+    environment: production
+    defaults:
+      run:
+        working-directory: apps/agent
+    env:
+      # --- Secrets (sensitive — values hidden in logs) ---
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+
+      # --- Variables (non-sensitive — readable in logs) ---
+      LANGFUSE_HOST: ${{ vars.LANGFUSE_HOST }}
+      SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+      SENTRY_ENVIRONMENT: ${{ vars.SENTRY_ENVIRONMENT }}
+      APP_ENV: ${{ vars.APP_ENV }}
+      LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/agent/uv.lock
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Stub: replaced by the real pipeline command in V0 week 2 (e.g. `arxivdigest run --daily`).
+      - name: Run digest pipeline
+        run: uv run arxivdigest hello --name "daily-cron"
