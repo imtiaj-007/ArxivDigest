@@ -1,5 +1,6 @@
 import typer
 
+from arxivdigest.adapters.observability.errors import init_sentry
 from arxivdigest.adapters.observability.logging import configure_logging
 from arxivdigest.adapters.observability.tracing import init_tracing
 from arxivdigest.cli.commands import hello
@@ -17,6 +18,7 @@ def _root() -> None:
     """Initialise settings, logging, and observability."""
     settings = get_settings()
     configure_logging(app_env=settings.app_env, log_level=settings.log_level)
+    init_sentry(settings)
     init_tracing(settings)
 
 
