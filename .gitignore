@@ -40,6 +40,10 @@ dist/
 *.pem
 *.key
 
+# direnv
+.envrc
+.direnv/
+
 # Logs
 *.log
 npm-debug.log*
