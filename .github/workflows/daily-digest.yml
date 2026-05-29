@@ -38,7 +38,7 @@ jobs:
       LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
 
       # --- Variables (non-sensitive — readable in logs) ---
-      LANGFUSE_HOST: ${{ vars.LANGFUSE_HOST }}
+      LANGFUSE_BASE_URL: ${{ vars.LANGFUSE_BASE_URL }}
       SENTRY_DSN: ${{ vars.SENTRY_DSN }}
       SENTRY_ENVIRONMENT: ${{ vars.SENTRY_ENVIRONMENT }}
       APP_ENV: ${{ vars.APP_ENV }}
@@ -57,6 +57,5 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      # Stub: replaced by the real pipeline command in V0 week 2 (e.g. `arxivdigest run --daily`).
       - name: Run digest pipeline
-        run: uv run arxivdigest hello --name "daily-cron"
+        run: uv run arxivdigest run --daily

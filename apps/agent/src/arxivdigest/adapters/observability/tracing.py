@@ -40,11 +40,11 @@ def init_tracing(settings: Settings) -> None:
     _client = Langfuse(
         public_key=settings.langfuse_public_key,
         secret_key=settings.langfuse_secret_key,
-        host=settings.langfuse_host,
+        host=settings.langfuse_base_url,
         environment=settings.app_env,
     )
     atexit.register(shutdown_tracing)
-    log.info("tracing.enabled", host=settings.langfuse_host, env=settings.app_env)
+    log.info("tracing.enabled", host=settings.langfuse_base_url, env=settings.app_env)
 
 
 def shutdown_tracing() -> None:

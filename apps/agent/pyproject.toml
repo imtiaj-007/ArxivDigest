@@ -17,6 +17,7 @@ dependencies = [
     "langfuse>=2.50",
     "sentry-sdk>=2.18",
     "asyncpg>=0.30",
+    "groq>=1.4.0",
 ]
 
 [project.scripts]
