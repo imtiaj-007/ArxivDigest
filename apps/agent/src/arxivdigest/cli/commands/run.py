@@ -17,10 +17,13 @@ from arxivdigest.adapters.arxiv.source import ArxivSource
 from arxivdigest.adapters.db.postgres import pool_lifespan
 from arxivdigest.adapters.db.repository import PostgresRepository
 from arxivdigest.adapters.embeddings.voyage import VoyageEmbedder
+from arxivdigest.adapters.llm.gemini import GeminiClient
 from arxivdigest.adapters.llm.groq import GroqClient
+from arxivdigest.adapters.llm.multi import MultiLLMClient
 from arxivdigest.adapters.observability.tracing import trace_span
 from arxivdigest.config import get_settings
 from arxivdigest.graph.builder import PipelineState, run_pipeline
+from arxivdigest.ports.llm import LLMClient
 
 log = structlog.get_logger()
 
@@ -36,7 +39,9 @@ async def _run(categories: list[str], limit: int) -> PipelineState:
         raise RuntimeError("GROQ_API_KEY is not set")
     if not settings.voyage_api_key:
         raise RuntimeError("VOYAGE_API_KEY is not set")
-    llm = GroqClient(settings.groq_api_key)
+    llm: LLMClient = GroqClient(settings.groq_api_key)
+    if settings.gemini_api_key:
+        llm = MultiLLMClient(primary=llm, fallback=GeminiClient(settings.gemini_api_key))
     embedder = VoyageEmbedder(settings.voyage_api_key)
     async with (
         httpx.AsyncClient(timeout=CRAWL_TIMEOUT_S) as client,
