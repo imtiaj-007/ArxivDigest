@@ -17,7 +17,7 @@ import typer
 from arxivdigest.adapters.arxiv.source import ArxivSource
 from arxivdigest.adapters.db.postgres import pool_lifespan
 from arxivdigest.adapters.db.repository import PostgresRepository
-from arxivdigest.adapters.llm.groq import GroqSummarizer
+from arxivdigest.adapters.llm.groq import GroqClient
 from arxivdigest.adapters.observability.tracing import trace_span
 from arxivdigest.config import get_settings
 from arxivdigest.stages.summarize import run_summarize_stage
@@ -34,7 +34,7 @@ async def _run(categories: list[str], limit: int, dry_run: bool) -> int:
     settings = get_settings()
     if not settings.groq_api_key:
         raise RuntimeError("GROQ_API_KEY is not set")
-    summarizer = GroqSummarizer(settings.groq_api_key)
+    summarizer = GroqClient(settings.groq_api_key)
     async with (
         httpx.AsyncClient(timeout=CRAWL_TIMEOUT_S) as client,
         pool_lifespan(settings.database_url) as pool,

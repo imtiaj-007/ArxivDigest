@@ -41,3 +41,11 @@ class SummarizedPaper(BaseModel):
 
     paper: RawPaper
     summary: PaperSummary
+
+
+class Classification(BaseModel):
+    """Theme assignment produced by the classify stage."""
+
+    themes: list[str] = Field(
+        description="1-3 theme slugs from the provided taxonomy, most relevant first."
+    )
