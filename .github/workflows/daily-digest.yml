@@ -32,7 +32,8 @@ jobs:
       # --- Secrets (sensitive — values hidden in logs) ---
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # GEMINI_API_KEY intentionally not passed — Gemini free tier is exhausted,
+      # so the run goes Groq-only. Re-add to re-enable MultiLLM failover.
       VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
       LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
       LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
