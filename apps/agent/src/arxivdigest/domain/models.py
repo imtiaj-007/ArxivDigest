@@ -51,6 +51,15 @@ class Classification(BaseModel):
     )
 
 
+class ScoredPaper(BaseModel):
+    """A fully-processed paper row, used by the publish stage to build a digest."""
+
+    id: str
+    title: str
+    themes: list[str]
+    score: float
+
+
 class ImpactAssessment(BaseModel):
     """LLM judgement of a paper's likely impact, used by the rank stage."""
 
