@@ -57,6 +57,5 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      # Stub: replaced by the real pipeline command in V0 week 2 (e.g. `arxivdigest run --daily`).
       - name: Run digest pipeline
-        run: uv run arxivdigest hello --name "daily-cron"
+        run: uv run arxivdigest run --daily
