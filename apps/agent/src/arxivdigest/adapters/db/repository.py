@@ -58,6 +58,31 @@ SET themes = $2, updated_at = now()
 WHERE arxiv_id = $1
 """
 
+_FETCH_UNRANKED = """
+SELECT arxiv_id, title, abstract, authors, categories, published_at
+FROM papers
+WHERE score IS NULL AND embedding IS NOT NULL
+ORDER BY published_at DESC
+LIMIT $1
+"""
+
+# Mean cosine distance from this paper to its N nearest other embedded papers.
+_NEIGHBOR_DISTANCE = """
+SELECT avg(dist) FROM (
+    SELECT p.embedding <=> t.embedding AS dist
+    FROM papers p, (SELECT embedding FROM papers WHERE arxiv_id = $1) t
+    WHERE p.embedding IS NOT NULL AND p.arxiv_id != $1
+    ORDER BY p.embedding <=> t.embedding
+    LIMIT $2
+) nearest
+"""
+
+_UPDATE_SCORE = """
+UPDATE papers
+SET score = $2, updated_at = now()
+WHERE arxiv_id = $1
+"""
+
 
 class PostgresRepository:
     """Persists summarized papers, idempotent on arxiv_id."""
@@ -123,3 +148,32 @@ class PostgresRepository:
                 await conn.executemany(_UPDATE_THEMES, themes)
         log.info("repository.themes_updated", count=len(themes))
         return len(themes)
+
+    async def fetch_unranked(self, limit: int) -> list[RawPaper]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(_FETCH_UNRANKED, limit)
+        return [
+            RawPaper(
+                arxiv_id=r["arxiv_id"],
+                title=r["title"],
+                abstract=r["abstract"],
+                authors=list(r["authors"]),
+                categories=list(r["categories"]),
+                published_at=r["published_at"],
+            )
+            for r in rows
+        ]
+
+    async def mean_neighbor_distance(self, arxiv_id: str, neighbors: int) -> float | None:
+        async with self._pool.acquire() as conn:
+            value = await conn.fetchval(_NEIGHBOR_DISTANCE, arxiv_id, neighbors)
+        return float(value) if value is not None else None
+
+    async def update_scores(self, scores: Sequence[tuple[str, float]]) -> int:
+        if not scores:
+            return 0
+        with trace_span("repository.update_scores", count=len(scores)):
+            async with self._pool.acquire() as conn:
+                await conn.executemany(_UPDATE_SCORE, scores)
+        log.info("repository.scores_updated", count=len(scores))
+        return len(scores)

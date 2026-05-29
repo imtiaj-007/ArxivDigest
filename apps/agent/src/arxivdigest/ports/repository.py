@@ -30,3 +30,18 @@ class Repository(Protocol):
     async def update_themes(self, themes: Sequence[tuple[str, list[str]]]) -> int:
         """Set themes for each (arxiv_id, theme_slugs). Returns the number updated."""
         ...
+
+    async def fetch_unranked(self, limit: int) -> list[RawPaper]:
+        """Return up to ``limit`` embedded-but-unscored papers."""
+        ...
+
+    async def mean_neighbor_distance(self, arxiv_id: str, neighbors: int) -> float | None:
+        """Mean cosine distance from this paper to its ``neighbors`` nearest others.
+
+        Higher = more novel. None when there are no other embedded papers.
+        """
+        ...
+
+    async def update_scores(self, scores: Sequence[tuple[str, float]]) -> int:
+        """Set the score for each (arxiv_id, score). Returns the number updated."""
+        ...

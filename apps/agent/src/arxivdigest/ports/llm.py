@@ -8,7 +8,12 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from arxivdigest.domain.models import Classification, PaperSummary, RawPaper
+from arxivdigest.domain.models import (
+    Classification,
+    ImpactAssessment,
+    PaperSummary,
+    RawPaper,
+)
 
 
 class LLMClient(Protocol):
@@ -20,4 +25,8 @@ class LLMClient(Protocol):
 
     async def classify(self, paper: RawPaper) -> Classification:
         """Assign 1-3 taxonomy themes to a paper."""
+        ...
+
+    async def score_impact(self, paper: RawPaper) -> ImpactAssessment:
+        """Rate a paper's likely impact (0-1) with a one-line rationale."""
         ...
