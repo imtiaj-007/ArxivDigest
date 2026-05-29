@@ -53,7 +53,7 @@ Pull the values from your local `.env` / password manager (same values as the GH
 | `VOYAGE_API_KEY` | |
 | `LANGFUSE_PUBLIC_KEY` | |
 | `LANGFUSE_SECRET_KEY` | |
-| `LANGFUSE_HOST` | `https://cloud.langfuse.com` |
+| `LANGFUSE_BASE_URL` | `https://cloud.langfuse.com` |
 | `NEXT_PUBLIC_SENTRY_DSN` | browser error tracking |
 | `SENTRY_DSN` | server-side error tracking |
 

@@ -34,7 +34,7 @@ We use **GitHub Environments** for the access boundary. All current values live 
 | `SENTRY_ENVIRONMENT` | `production` | Sentry env tag |
 | `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | `production` | Browser-visible by design |
 | `LOG_LEVEL` | `INFO` | Plain config |
-| `LANGFUSE_HOST` | `https://cloud.langfuse.com` | Public URL |
+| `LANGFUSE_BASE_URL` | `https://cloud.langfuse.com` | Public URL |
 | `SENTRY_DSN` | `https://<hash>@<org>.ingest.sentry.io/<project-id>` | **Sentry DSNs are public-safe by design** — they ship in browser bundles and are rate-limited per project |
 | `NEXT_PUBLIC_SENTRY_DSN` | Same DSN as above (or the web-project DSN if you created two Sentry projects) | Browser-visible |
 | `SENTRY_ORG` | Your Sentry org slug, e.g. `imtiaj` | From `sentry.io/organizations/<slug>/` |
@@ -82,7 +82,7 @@ gh variable set APP_ENV                         --env production --body "product
 gh variable set SENTRY_ENVIRONMENT              --env production --body "production"
 gh variable set NEXT_PUBLIC_SENTRY_ENVIRONMENT  --env production --body "production"
 gh variable set LOG_LEVEL                       --env production --body "INFO"
-gh variable set LANGFUSE_HOST                   --env production --body "https://cloud.langfuse.com"
+gh variable set LANGFUSE_BASE_URL               --env production --body "https://cloud.langfuse.com"
 gh variable set SENTRY_DSN                      --env production --body "https://...@sentry.io/..."
 gh variable set NEXT_PUBLIC_SENTRY_DSN          --env production --body "https://...@sentry.io/..."
 gh variable set SENTRY_ORG                      --env production --body "<your-org-slug>"

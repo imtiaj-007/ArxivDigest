@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # Langfuse
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
-    langfuse_host: str = "https://cloud.langfuse.com"
+    langfuse_base_url: str = "https://cloud.langfuse.com"
 
     # Sentry
     sentry_dsn: str | None = None
