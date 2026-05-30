@@ -25,6 +25,7 @@ We use **GitHub Environments** for the access boundary. All current values live 
 | `LANGFUSE_PUBLIC_KEY` | Langfuse Cloud → Settings → API Keys | Starts with `pk-lf-...` — despite the name, this is an auth credential |
 | `LANGFUSE_SECRET_KEY` | Same screen | Starts with `sk-lf-...` |
 | `SENTRY_AUTH_TOKEN` | https://sentry.io/settings/<org>/auth-tokens/ | Scopes: `project:releases` + `org:read`. Build-time only (Vercel + CI source-map upload). |
+| `WEB_REVALIDATE_TOKEN` | `openssl rand -hex 32` (same value in Vercel as `REVALIDATE_TOKEN`) | Authenticates the cron's POST to `/api/revalidate` so the site busts ISR caches right after `publish`. Optional — workflow no-ops if unset. |
 
 ### Variables — `gh variable set <NAME> --env production --body <value>`
 
@@ -39,6 +40,7 @@ We use **GitHub Environments** for the access boundary. All current values live 
 | `NEXT_PUBLIC_SENTRY_DSN` | Same DSN as above (or the web-project DSN if you created two Sentry projects) | Browser-visible |
 | `SENTRY_ORG` | Your Sentry org slug, e.g. `imtiaj` | From `sentry.io/organizations/<slug>/` |
 | `SENTRY_PROJECT` | Next.js project slug, e.g. `arxivdigest-web` | Used by `withSentryConfig` for source-map upload |
+| `WEB_REVALIDATE_URL` | `https://arxiv-digest-preview.vercel.app/api/revalidate` (or your custom domain) | Public URL, no secret material — workflow shells `curl` to it after `run --daily` |
 
 ---
 
@@ -67,6 +69,7 @@ gh secret set VOYAGE_API_KEY        --env production --body "pa-..."
 gh secret set LANGFUSE_PUBLIC_KEY   --env production --body "pk-lf-..."
 gh secret set LANGFUSE_SECRET_KEY   --env production --body "sk-lf-..."
 gh secret set SENTRY_AUTH_TOKEN     --env production --body "sntrys_..."
+gh secret set WEB_REVALIDATE_TOKEN  --env production --body "$(openssl rand -hex 32)"  # same value goes into Vercel as REVALIDATE_TOKEN
 ```
 
 Or pipe from your local `.env` to avoid pasting into the terminal:
@@ -87,6 +90,7 @@ gh variable set SENTRY_DSN                      --env production --body "https:/
 gh variable set NEXT_PUBLIC_SENTRY_DSN          --env production --body "https://...@sentry.io/..."
 gh variable set SENTRY_ORG                      --env production --body "<your-org-slug>"
 gh variable set SENTRY_PROJECT                  --env production --body "arxivdigest-web"
+gh variable set WEB_REVALIDATE_URL              --env production --body "https://arxiv-digest-preview.vercel.app/api/revalidate"
 ```
 
 ### 4. Verify
@@ -96,7 +100,7 @@ gh secret list   --env production
 gh variable list --env production
 ```
 
-Should list 7 secrets and 9 variables.
+Should list 8 secrets and 10 variables.
 
 ### 5. Trigger a test run
 

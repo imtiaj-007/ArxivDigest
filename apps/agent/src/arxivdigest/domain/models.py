@@ -6,6 +6,7 @@ the shape adapters translate to/from (arxiv Atom, Groq JSON, Postgres rows).
 
 from __future__ import annotations
 
+import datetime as _dt
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -69,3 +70,19 @@ class ImpactAssessment(BaseModel):
         description="Likely impact: 0 = routine/incremental, 1 = landmark that changes practice.",
     )
     reasoning: str = Field(description="One-sentence justification for the score.")
+
+
+class Run(BaseModel):
+    """A single execution of the pipeline; one row in the ``runs`` table."""
+
+    id: str
+    started_at: _dt.datetime
+    completed_at: _dt.datetime | None = None
+    status: str  # 'running' | 'completed' | 'failed'
+    papers_crawled: int = 0
+    papers_summarized: int = 0
+    papers_classified: int = 0
+    papers_embedded: int = 0
+    papers_ranked: int = 0
+    papers_published: int = 0
+    error_summary: str | None = None

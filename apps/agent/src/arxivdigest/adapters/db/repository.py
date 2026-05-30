@@ -15,7 +15,7 @@ import asyncpg
 import structlog
 
 from arxivdigest.adapters.observability.tracing import trace_span
-from arxivdigest.domain.models import RawPaper, ScoredPaper, SummarizedPaper
+from arxivdigest.domain.models import RawPaper, Run, ScoredPaper, SummarizedPaper
 
 log = structlog.get_logger(__name__)
 
@@ -66,6 +66,40 @@ VALUES ($1, $2, $3)
 ON CONFLICT (date) DO UPDATE SET
     summary = EXCLUDED.summary,
     paper_ids = EXCLUDED.paper_ids
+"""
+
+_START_RUN = """
+INSERT INTO runs (status) VALUES ('running') RETURNING id
+"""
+
+_COMPLETE_RUN = """
+UPDATE runs
+SET completed_at = now(),
+    status = 'completed',
+    papers_crawled = $2,
+    papers_summarized = $3,
+    papers_classified = $4,
+    papers_embedded = $5,
+    papers_ranked = $6,
+    papers_published = $7
+WHERE id = $1
+"""
+
+_FAIL_RUN = """
+UPDATE runs
+SET completed_at = now(),
+    status = 'failed',
+    error_summary = $2
+WHERE id = $1
+"""
+
+_FETCH_RECENT_RUNS = """
+SELECT id, started_at, completed_at, status,
+       papers_crawled, papers_summarized, papers_classified,
+       papers_embedded, papers_ranked, papers_published, error_summary
+FROM runs
+WHERE started_at > now() - make_interval(days => $1)
+ORDER BY started_at DESC
 """
 
 _FETCH_UNEMBEDDED = """
@@ -207,6 +241,62 @@ class PostgresRepository:
             async with self._pool.acquire() as conn:
                 await conn.execute(_UPSERT_DIGEST, date, summary, ids)
         log.info("repository.digest_upserted", date=date.isoformat(), papers=len(ids))
+
+    async def start_run(self) -> str:
+        async with self._pool.acquire() as conn:
+            value = await conn.fetchval(_START_RUN)
+        run_id = str(value)
+        log.info("run.started", run_id=run_id)
+        return run_id
+
+    async def complete_run(
+        self,
+        run_id: str,
+        *,
+        papers_crawled: int = 0,
+        papers_summarized: int = 0,
+        papers_classified: int = 0,
+        papers_embedded: int = 0,
+        papers_ranked: int = 0,
+        papers_published: int = 0,
+    ) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(
+                _COMPLETE_RUN,
+                uuid.UUID(run_id),
+                papers_crawled,
+                papers_summarized,
+                papers_classified,
+                papers_embedded,
+                papers_ranked,
+                papers_published,
+            )
+        log.info("run.completed", run_id=run_id)
+
+    async def fail_run(self, run_id: str, error_summary: str) -> None:
+        async with self._pool.acquire() as conn:
+            await conn.execute(_FAIL_RUN, uuid.UUID(run_id), error_summary)
+        log.info("run.failed", run_id=run_id, error=error_summary[:200])
+
+    async def fetch_recent_runs(self, days: int) -> list[Run]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(_FETCH_RECENT_RUNS, days)
+        return [
+            Run(
+                id=str(r["id"]),
+                started_at=r["started_at"],
+                completed_at=r["completed_at"],
+                status=r["status"],
+                papers_crawled=r["papers_crawled"],
+                papers_summarized=r["papers_summarized"],
+                papers_classified=r["papers_classified"],
+                papers_embedded=r["papers_embedded"],
+                papers_ranked=r["papers_ranked"],
+                papers_published=r["papers_published"],
+                error_summary=r["error_summary"],
+            )
+            for r in rows
+        ]
 
     async def fetch_unembedded(self, limit: int) -> list[tuple[str, str, str]]:
         async with self._pool.acquire() as conn:

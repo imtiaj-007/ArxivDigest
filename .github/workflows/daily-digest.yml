@@ -69,3 +69,22 @@ jobs:
 
       - name: Run digest pipeline
         run: uv run arxivdigest run --daily
+
+      # Bust the ISR cache on the data-driven pages so today's digest shows
+      # up immediately on the site, not after the page's revalidate interval.
+      # No-ops silently if the URL/token aren't set yet (early days).
+      - name: Revalidate web pages
+        if: success()
+        working-directory: .
+        env:
+          WEB_REVALIDATE_URL: ${{ vars.WEB_REVALIDATE_URL }}
+          WEB_REVALIDATE_TOKEN: ${{ secrets.WEB_REVALIDATE_TOKEN }}
+        run: |
+          if [ -z "$WEB_REVALIDATE_URL" ] || [ -z "$WEB_REVALIDATE_TOKEN" ]; then
+            echo "Revalidation URL or token not configured — skipping."
+            exit 0
+          fi
+          curl --fail --silent --show-error -X POST \
+            -H "Authorization: Bearer $WEB_REVALIDATE_TOKEN" \
+            "$WEB_REVALIDATE_URL"
+          echo
