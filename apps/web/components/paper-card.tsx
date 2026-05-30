@@ -40,7 +40,9 @@ export function PaperCard({ paper }: { paper: PaperRow }) {
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
           {(paper.themes ?? []).map((t) => (
-            <Badge key={t}>{t}</Badge>
+            <Link key={t} href={`/themes/${t}`}>
+              <Badge className="transition-opacity hover:opacity-80">{t}</Badge>
+            </Link>
           ))}
           {paper.score != null && (
             <Badge variant="outline" className="ml-auto">
