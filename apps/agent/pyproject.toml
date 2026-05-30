@@ -22,6 +22,8 @@ dependencies = [
     "tenacity>=9.1.4",
     "google-genai>=2.7.0",
     "jsonref>=1.1.0",
+    "sentence-transformers>=5.5.1",
+    "torch>=2.12.0",
 ]
 
 [project.scripts]
@@ -73,8 +75,19 @@ disallow_any_generics = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["langfuse.*", "langgraph.*", "asyncpg.*"]
+module = ["langfuse.*", "langgraph.*", "asyncpg.*", "sentence_transformers.*"]
 ignore_missing_imports = true
+
+# Pull torch from PyTorch's CPU wheel index — the daily cron runs on CPU only,
+# and the default CUDA wheels are ~2.5 GB. macOS already gets CPU wheels by default;
+# this ensures Linux (GH Actions) does too.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
