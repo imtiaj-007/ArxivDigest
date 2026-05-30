@@ -98,7 +98,9 @@ export default async function PaperDetailPage(props: {
       <header className="mb-8">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {(paper.themes ?? []).map((t) => (
-            <Badge key={t}>{t}</Badge>
+            <Link key={t} href={`/themes/${t}`}>
+              <Badge className="transition-opacity hover:opacity-80">{t}</Badge>
+            </Link>
           ))}
           {paper.score != null && (
             <Badge variant="outline" className="ml-auto">

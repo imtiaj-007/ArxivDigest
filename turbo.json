@@ -12,7 +12,8 @@
     "SENTRY_AUTH_TOKEN",
     "NEXT_PUBLIC_SENTRY_DSN",
     "NEXT_PUBLIC_SENTRY_ENVIRONMENT",
-    "NEXT_RUNTIME"
+    "NEXT_RUNTIME",
+    "REVALIDATE_TOKEN"
   ],
   "tasks": {
     "build": {
