@@ -1,6 +1,7 @@
 import { getDb } from "@repo/db/client";
 import { papers } from "@repo/db/schema";
 import { sql } from "drizzle-orm";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -80,19 +81,22 @@ export default async function PapersPage() {
                     )}
                   </div>
                   <CardTitle className="mt-2">
+                    <Link href={`/papers/${p.arxivId}`} className="hover:underline">
+                      {p.title}
+                    </Link>
+                  </CardTitle>
+                  <CardDescription>
+                    {p.authors.slice(0, 4).join(", ")}
+                    {p.authors.length > 4 ? " et al." : ""} ·{" "}
+                    {p.publishedAt.toISOString().slice(0, 10)} ·{" "}
                     <a
                       href={`https://arxiv.org/abs/${p.arxivId}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover:underline"
                     >
-                      {p.title}
+                      arxiv ↗
                     </a>
-                  </CardTitle>
-                  <CardDescription>
-                    {p.authors.slice(0, 4).join(", ")}
-                    {p.authors.length > 4 ? " et al." : ""} ·{" "}
-                    {p.publishedAt.toISOString().slice(0, 10)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="text-sm">
