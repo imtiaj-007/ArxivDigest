@@ -45,13 +45,29 @@ async def _run(categories: list[str], limit: int) -> PipelineState:
         httpx.AsyncClient(timeout=CRAWL_TIMEOUT_S) as client,
         pool_lifespan(settings.database_url) as pool,
     ):
-        final = await run_pipeline(
-            ArxivSource(client),
-            llm,
-            embedder,
-            PostgresRepository(pool),
-            categories=categories,
-            limit=limit,
+        repository = PostgresRepository(pool)
+        run_id = await repository.start_run()
+        try:
+            final = await run_pipeline(
+                ArxivSource(client),
+                llm,
+                embedder,
+                repository,
+                categories=categories,
+                limit=limit,
+            )
+        except Exception as exc:
+            # Record the failure before propagating so the run row isn't stuck on 'running'.
+            await repository.fail_run(run_id, repr(exc)[:500])
+            raise
+        await repository.complete_run(
+            run_id,
+            papers_crawled=final.get("crawled", 0),
+            papers_summarized=final.get("summarized", 0),
+            papers_classified=final.get("classified", 0),
+            papers_embedded=final.get("embedded", 0),
+            papers_ranked=final.get("ranked", 0),
+            papers_published=final.get("published", 0),
         )
     return final
 

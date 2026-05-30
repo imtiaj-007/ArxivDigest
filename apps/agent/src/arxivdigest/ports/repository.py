@@ -6,7 +6,7 @@ import datetime
 from collections.abc import Sequence
 from typing import Protocol
 
-from arxivdigest.domain.models import RawPaper, ScoredPaper, SummarizedPaper
+from arxivdigest.domain.models import RawPaper, Run, ScoredPaper, SummarizedPaper
 
 
 class Repository(Protocol):
@@ -36,6 +36,32 @@ class Repository(Protocol):
         self, date: datetime.date, summary: str, paper_ids: Sequence[str]
     ) -> None:
         """Insert or update the digest for ``date``."""
+        ...
+
+    async def start_run(self) -> str:
+        """Insert a 'running' row in ``runs`` and return its id."""
+        ...
+
+    async def complete_run(
+        self,
+        run_id: str,
+        *,
+        papers_crawled: int = 0,
+        papers_summarized: int = 0,
+        papers_classified: int = 0,
+        papers_embedded: int = 0,
+        papers_ranked: int = 0,
+        papers_published: int = 0,
+    ) -> None:
+        """Mark a run as completed, set completed_at, write final per-stage counts."""
+        ...
+
+    async def fail_run(self, run_id: str, error_summary: str) -> None:
+        """Mark a run as failed and record the error summary."""
+        ...
+
+    async def fetch_recent_runs(self, days: int) -> list[Run]:
+        """Return runs started within the last ``days`` days, newest first."""
         ...
 
     async def fetch_unembedded(self, limit: int) -> list[tuple[str, str, str]]:

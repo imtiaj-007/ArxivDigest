@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   date,
   index,
+  integer,
   pgTable,
   real,
   text,
@@ -47,7 +48,27 @@ export const digests = pgTable(
   (t) => [uniqueIndex("digests_date_idx").on(t.date)],
 );
 
+export const runs = pgTable(
+  "runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    status: text("status").notNull(), // 'running' | 'completed' | 'failed'
+    papersCrawled: integer("papers_crawled").notNull().default(0),
+    papersSummarized: integer("papers_summarized").notNull().default(0),
+    papersClassified: integer("papers_classified").notNull().default(0),
+    papersEmbedded: integer("papers_embedded").notNull().default(0),
+    papersRanked: integer("papers_ranked").notNull().default(0),
+    papersPublished: integer("papers_published").notNull().default(0),
+    errorSummary: text("error_summary"),
+  },
+  (t) => [index("runs_started_at_idx").on(t.startedAt.desc())],
+);
+
 export type Paper = typeof papers.$inferSelect;
 export type NewPaper = typeof papers.$inferInsert;
 export type Digest = typeof digests.$inferSelect;
 export type NewDigest = typeof digests.$inferInsert;
+export type Run = typeof runs.$inferSelect;
+export type NewRun = typeof runs.$inferInsert;
