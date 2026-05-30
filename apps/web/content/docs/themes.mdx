@@ -1,0 +1,41 @@
+---
+title: Theme taxonomy
+description: The 14 themes the classify stage chooses from.
+---
+
+The classify stage tags every paper with 1–3 of these themes. The taxonomy is
+defined in code (`apps/agent/src/arxivdigest/domain/themes.py`) and rendered
+verbatim into the classify prompt, so what the LLM sees here is what's on the
+site. Themes the model returns that aren't in this list are filtered out by
+the adapter; if nothing valid survives, the paper falls back to `other`.
+
+| Slug | Name | Covers |
+|---|---|---|
+| `llm` | Large Language Models | LLM architectures, training, scaling, inference. |
+| `agents` | Agents & Tool Use | Autonomous agents, planning, tool/function calling, multi-agent systems. |
+| `retrieval` | Retrieval & RAG | Retrieval-augmented generation, embeddings, vector search, memory. |
+| `reasoning` | Reasoning | Chain-of-thought, math, code, planning, problem-solving. |
+| `efficiency` | Efficiency & Systems | Quantization, distillation, KV-cache, serving, inference speedups. |
+| `rl` | Reinforcement Learning | RL, RLHF, preference optimization, alignment training. |
+| `vision` | Computer Vision | Image/video understanding, generation, diffusion, multimodal vision. |
+| `multimodal` | Multimodal | Vision-language, audio, cross-modal models and benchmarks. |
+| `speech` | Speech & Audio | ASR, TTS, audio generation and understanding. |
+| `robotics` | Robotics & Embodied AI | Manipulation, control, embodied agents, sim-to-real. |
+| `safety` | Safety & Alignment | Alignment, interpretability, red-teaming, evaluation of risks. |
+| `data` | Data & Benchmarks | Datasets, benchmarks, evaluation methodology, data curation. |
+| `theory` | ML Theory | Optimization, generalization, learning theory, statistics. |
+| `other` | Other | Anything that doesn't fit the themes above. |
+
+## Why a fixed taxonomy
+
+A constrained label set keeps the classify call cheap (one short response),
+makes [/themes](/papers) browse pages possible, and lets eval be a clean
+multi-label F1 against a known label space. The trade-off is that arxiv's
+real long-tail (RO, CR, HC, IR, …) gets compressed into the `other` bucket;
+the taxonomy will widen with usage.
+
+## Why a fallback theme
+
+LLMs are imaginative — without a fallback, a paper the model has no opinion
+on could return zero valid themes, which would break downstream UI assumptions.
+The `other` fallback guarantees every paper carries at least one theme.

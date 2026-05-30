@@ -1,0 +1,156 @@
+---
+title: Methodology
+description: How the daily pipeline turns yesterday's arxiv submissions into a ranked digest — model choices, prompts, rate-limit handling, and the resume design.
+---
+
+The agent runs once a day under a GitHub Actions cron. Each run is a single
+[LangGraph](https://github.com/langchain-ai/langgraph) state machine chaining
+six stages in order: `crawl → summarize → classify → embed → rank → publish`.
+
+The graph state itself is deliberately thin — just per-stage counts. The
+**database status columns are the resume checkpoint**: every stage is idempotent
+and reads its own pending work (`X IS NULL`), so a crash mid-run is recovered
+by re-running the graph; each node only processes what's still outstanding.
+That's a more robust resume story than an in-memory checkpointer for a
+stateless GH Actions job, and it falls out for free from the design.
+
+## Crawl
+
+Source: the official arxiv [Atom API](https://info.arxiv.org/help/api/). The
+adapter is a single GET via `httpx` + stdlib `xml.etree` — the API is so simple
+that no SDK is warranted.
+
+Two arxiv-etiquette details bake in here:
+
+- **`User-Agent` header**. The default httpx UA gets 429'd immediately; a
+  descriptive UA (`ArxivDigest/0.1 (+repo URL)`) passes cleanly.
+- **`Retry-After`-respecting retry**. On 429 the adapter sleeps the exact
+  duration arxiv requests, up to three attempts.
+
+Crawled rows are upserted as bare papers (`ON CONFLICT DO NOTHING`) — so
+re-crawling the same window never clobbers already-processed papers.
+
+## Summarize
+
+Model: **Groq's hosted Llama 3.3 70B** (`llama-3.3-70b-versatile`) at temperature
+`0.2`. Wired through [`instructor`](https://github.com/jxnl/instructor) with a
+Pydantic `PaperSummary(problem, approach, result, why_it_matters)` response model
+— so the LLM output is JSON-validated, and `instructor` auto-reprompts on a
+schema failure (up to two retries).
+
+The prompt is checked into the repo at `domain/prompts/summarize.py` as
+`summarize/v1`. Two non-obvious rules in the system message:
+
+- **Anti-hallucination clause**: *"Base every field strictly on the supplied
+  title and abstract — never invent results, numbers, or claims the abstract
+  does not state."* Critical for a research summarizer; without it the model
+  cheerfully fabricates plausible-sounding numbers.
+- **Low temperature**. Summaries should be faithful, not creative.
+
+The structured 4-tuple persists as JSON in `papers.summary` (kept as `text` for
+now; `jsonb` migration when the rendering need warrants it).
+
+## Classify
+
+Model: **Llama 3.1 8B Instant**. Cheaper, faster, and adequate for a
+constrained-choice problem (pick from a known taxonomy).
+
+The prompt embeds the [taxonomy](/docs/themes) and instructs the model to
+return 1–3 slugs in order of relevance. Two correctness defenses on top:
+
+- **Post-validation in the adapter**. The returned slugs are intersected with
+  the canonical taxonomy, deduped, capped at 3, and fall back to `other` if
+  nothing valid survived. The LLM cannot invent themes that escape into the
+  database.
+- **Idempotent backfill**. The stage reads `WHERE themes IS NULL`, so already-
+  classified papers are skipped on re-run.
+
+## Embed
+
+Model: **`BAAI/bge-large-en-v1.5`** (1024-d, English, top of the open MTEB board)
+running locally via `sentence-transformers` on CPU torch. No API key, no rate
+limit, no payment method.
+
+Why local instead of a hosted embedding API:
+
+- **$0 forever** — the daily digest's cost ledger stays clean.
+- **No throughput dance**. Earlier the agent used Voyage's `voyage-3` (also
+  1024-d), but the no-payment-method tier capped at 3 RPM / 10K TPM. That
+  required token-aware chunking and 60 s inter-chunk pacing in the adapter —
+  worked, but fragile. Local inference takes ~30 s for 50 papers on a GH Actions
+  CPU runner, no pacing.
+- **Cached weights**. The 1.3 GB model downloads once and is cached at
+  `~/.cache/huggingface/hub` between cron runs via `actions/cache`.
+
+Vectors land in `papers.embedding` (pgvector `vector(1024)`) and are indexed
+with an HNSW + `vector_cosine_ops` index for cheap nearest-neighbor queries
+from the rank stage and (later) the per-paper "similar papers" view.
+
+## Rank
+
+The score in `papers.score` blends two signals:
+
+```
+score = 0.4 × novelty + 0.6 × impact
+```
+
+both clamped to `[0, 1]`.
+
+- **Novelty** = the *mean cosine distance from this paper's embedding to its 5
+  nearest neighbors in the recent corpus*. Higher distance → less crowded
+  topic → more novel. Computed in a single pgvector query per paper.
+- **Impact** = an LLM judgment from Llama 3.1 8B Instant, prompted to rate
+  0–1 with a one-sentence justification. The system prompt explicitly tells
+  the model to be calibrated and skeptical: *"Most papers land between 0.3
+  and 0.6"* — without that nudge, LLMs tend toward inflation.
+
+Why 60% weight on impact: novelty alone rewards being topically isolated,
+which doesn't correlate with quality. The LLM, despite its biases, is much
+better at detecting whether a contribution actually advances the state of
+practice.
+
+Why 8B not 70B for impact (a deliberate deviation from the original
+architecture spec): impact is a coarse 0–1 judgment, the 8B model handles it
+well, and using 70B for both summarize and rank would double the heaviest
+LLM's daily load and crowd Groq's per-minute caps. Free-tier headroom matters.
+
+## Publish
+
+The stage selects the top-K (default 10) papers by score where all upstream
+fields are present, builds a templated digest summary (count, leading themes,
+title list), and upserts one row per UTC date in `digests`. An LLM-written
+narrative summary is a candidate upgrade, but the templated version is cheap,
+deterministic, and adequate for V0.
+
+## Rate-limit defenses
+
+Two layers, at the layer the limit actually bites:
+
+- **Per-model `aiolimiter` token bucket** in front of every Groq call —
+  conservatively 15 req/min on the 70B workhorse, 25 req/min on 8B. This is
+  the actual fix: exponential backoff alone is *reactive* (you spam first,
+  then back off), so a 50-call burst could blow Groq's per-minute cap before
+  any backoff kicks in. The bucket pre-paces so successful runs almost never
+  trip a 429 in the first place.
+- **`tenacity` backoff that honors Groq's `Retry-After`**. When a 429 does
+  escape, the wait callback extracts the header from the exception chain and
+  sleeps the exact reset duration, falling back to exponential `(5 → 45 s)`
+  if it can't see it.
+
+And one safety net at the orchestration layer: every stage wraps the per-paper
+call in a `try / except`. A single failure is logged and the run continues —
+the failed paper stays unprocessed (`X IS NULL`) and gets picked up on the
+next run. This is what keeps the agent unattended.
+
+## Observability
+
+- **[Langfuse](https://langfuse.com)** captures every LLM call as a trace, with
+  the prompt, completion, model, latency, and token counts. Each stage opens a
+  `trace_span("stage.X", ...)` so the trace tree mirrors the graph.
+- **[Sentry](https://sentry.io)** captures uncaught errors with traceback +
+  context.
+- **`structlog`** emits JSON logs to stdout in production (consumed by GitHub
+  Actions log retention) and pretty key-value lines in development.
+
+All three SDKs are silent-by-default: when keys are absent (e.g., a contributor
+running the agent locally without secrets) they no-op and the agent runs unchanged.
