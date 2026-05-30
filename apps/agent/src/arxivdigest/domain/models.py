@@ -41,3 +41,31 @@ class SummarizedPaper(BaseModel):
 
     paper: RawPaper
     summary: PaperSummary
+
+
+class Classification(BaseModel):
+    """Theme assignment produced by the classify stage."""
+
+    themes: list[str] = Field(
+        description="1-3 theme slugs from the provided taxonomy, most relevant first."
+    )
+
+
+class ScoredPaper(BaseModel):
+    """A fully-processed paper row, used by the publish stage to build a digest."""
+
+    id: str
+    title: str
+    themes: list[str]
+    score: float
+
+
+class ImpactAssessment(BaseModel):
+    """LLM judgement of a paper's likely impact, used by the rank stage."""
+
+    score: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Likely impact: 0 = routine/incremental, 1 = landmark that changes practice.",
+    )
+    reasoning: str = Field(description="One-sentence justification for the score.")

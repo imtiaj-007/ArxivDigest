@@ -1,59 +1,38 @@
-"""Summarize stage — crawl recent papers, summarize each, persist.
+"""Summarize stage — backfill summaries for papers that lack one.
 
-Orchestrates the ports only (PaperSource, LLMClient, Repository); it has no
-knowledge of arxiv, Groq, or Postgres. A per-paper bulkhead keeps one bad
-summary from sinking the whole run.
+Idempotent and status-driven: operates on rows where ``summary IS NULL`` (the
+crawl stage ingests bare rows first). Per-paper bulkhead keeps one bad summary
+from sinking the run.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-
 import structlog
 
 from arxivdigest.adapters.observability.tracing import trace_span
-from arxivdigest.domain.models import SummarizedPaper
 from arxivdigest.ports.llm import LLMClient
 from arxivdigest.ports.repository import Repository
-from arxivdigest.ports.source import PaperSource
 
 log = structlog.get_logger(__name__)
 
 
-async def run_summarize_stage(
-    source: PaperSource,
-    summarizer: LLMClient,
-    repository: Repository,
-    *,
-    categories: Sequence[str],
-    limit: int,
-    dry_run: bool = False,
-) -> list[SummarizedPaper]:
-    """Fetch up to ``limit`` recent papers, summarize each, and (unless dry-run) persist.
+async def run_summarize_stage(summarizer: LLMClient, repository: Repository, *, limit: int) -> int:
+    """Summarize up to ``limit`` un-summarized papers and persist the summaries."""
+    with trace_span("stage.summarize", limit=limit):
+        papers = await repository.fetch_unsummarized(limit)
+        if not papers:
+            log.info("summarize.nothing_to_do")
+            return 0
 
-    Returns the successfully summarized papers.
-    """
-    with trace_span("stage.summarize", limit=limit, dry_run=dry_run):
-        papers = await source.fetch_recent(categories, limit)
-
-        summarized: list[SummarizedPaper] = []
+        updates: list[tuple[str, str]] = []
         for paper in papers:
             try:
                 summary = await summarizer.summarize(paper)
             except Exception:
-                # Bulkhead: log and skip this paper, keep processing the rest.
                 log.exception("summarize.paper_failed", arxiv_id=paper.arxiv_id)
                 continue
-            summarized.append(SummarizedPaper(paper=paper, summary=summary))
+            updates.append((paper.arxiv_id, summary.model_dump_json()))
 
-        if dry_run:
-            log.info("summarize.dry_run", summarized=len(summarized), crawled=len(papers))
-        else:
-            written = await repository.upsert_papers(summarized)
-            log.info(
-                "summarize.persisted",
-                written=written,
-                summarized=len(summarized),
-                crawled=len(papers),
-            )
-    return summarized
+        written = await repository.update_summaries(updates)
+        log.info("summarize.persisted", written=written, fetched=len(papers))
+    return written

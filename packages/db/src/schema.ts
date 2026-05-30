@@ -23,6 +23,7 @@ export const papers = pgTable(
     publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
     embedding: vector("embedding", { dimensions: 1024 }),
     summary: text("summary"),
+    themes: text("themes").array(),
     score: real("score"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
