@@ -76,6 +76,12 @@ Pull the values from your local `.env` / password manager (same values as the GH
 | `SENTRY_ORG` | your org slug |
 | `SENTRY_PROJECT` | `arxivdigest-web` |
 
+### Set for Production (revalidation hook)
+
+| Name | Notes |
+|---|---|
+| `REVALIDATE_TOKEN` | Token the `/api/revalidate` endpoint requires in the `Authorization: Bearer …` header. Generate with `openssl rand -hex 32`. **The same value** must be set as `WEB_REVALIDATE_TOKEN` in the GH `production` env so the daily cron can call it. |
+
 ## 5. First deploy
 
 After settings are saved, trigger a deploy:

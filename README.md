@@ -1,24 +1,42 @@
 # ArxivDigest
 
-> Autonomous multi-agent system that scans daily arxiv AI/ML submissions, classifies them across research themes, ranks by novelty and practical impact, and publishes a structured digest to a public archive.
+> Autonomous daily AI agent that scans new arxiv `cs.AI` / `cs.LG` / `cs.CL` submissions, produces structured TL;DRs, classifies them by theme, and ranks them by novelty + impact — published every morning, unattended, at $0/month.
 
-**Status:** 🚧 Pre-V0 — see [docs/PLANNING.md](./docs/PLANNING.md)
-**Live demo:** TBD
-**Architecture:** [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+**Status:** V0 Weeks 1–3 shipped. Daily cron live. Eval harness (Week 4) next.
+**Live:** [arxiv-digest-preview.vercel.app](https://arxiv-digest-preview.vercel.app)
+**Reference:** [/docs/methodology](https://arxiv-digest-preview.vercel.app/docs/methodology) (engineering deep-dive) · [/docs/themes](https://arxiv-digest-preview.vercel.app/docs/themes) (taxonomy) · [/status](https://arxiv-digest-preview.vercel.app/status) (30-day run grid)
 
 ## What it does
 
-Every morning at 06:00 UTC, an agent pipeline:
+Every morning at 07:00 UTC, a LangGraph pipeline:
 
-1. Pulls the last 24h of arxiv submissions in `cs.AI` / `cs.LG` / `cs.CL`
-2. Filters for relevance (cheap LLM pass)
-3. Classifies each paper across 15 research themes
-4. Generates a structured summary (problem / approach / result / why it matters)
-5. Ranks by novelty + practical impact, anchored against historical context
-6. Publishes a markdown digest to a public site
-7. Logs every LLM call to Langfuse for trace observability
+1. **Crawl** — fetch the last day's `cs.AI` / `cs.LG` / `cs.CL` submissions from arxiv's Atom API.
+2. **Summarize** — Groq Llama 3.3 70B + `instructor` produces a structured TL;DR (problem / approach / result / why it matters), grounded strictly in the abstract.
+3. **Classify** — Llama 3.1 8B assigns 1–3 themes from a 14-theme taxonomy (post-validated against the canonical set).
+4. **Embed** — local `BAAI/bge-large-en-v1.5` (1024-d) on CPU; vectors land in pgvector with an HNSW + cosine index.
+5. **Rank** — blend pgvector novelty (cosine distance to nearest neighbors) with an LLM impact judgment into `papers.score`.
+6. **Publish** — write a `digests` row from the top-K, fire on-demand revalidation so the site updates immediately.
 
-Runs autonomously, costs $0/month on free tiers, fully observable.
+Each stage is idempotent and reads its own pending work from the database (`X IS NULL`), so the DB status columns *are* the resume checkpoint — a crashed run is recovered by re-running the graph.
+
+Free-tier hardening for the daily run:
+- **Groq:** per-model `aiolimiter` token bucket (proactive pacing, never trips per-minute caps in the hot path) + `tenacity` backoff honoring Groq's `Retry-After` header + `MultiLLMClient` Gemini failover (dormant; can be activated by setting `GEMINI_API_KEY`).
+- **Embeddings:** local model, no API, no rate limit, model weights cached in GH Actions.
+- **Per-paper bulkhead:** one failed call is logged and skipped — the run continues.
+
+Runs autonomously, costs **$0/month** on free tiers, every LLM call traced in Langfuse, every uncaught error captured in Sentry, every run recorded in the `runs` table and rendered as a 30-day grid on `/status`.
+
+## Public surface
+
+| Route | What |
+|---|---|
+| `/papers` | Latest ranked digest |
+| `/papers/[arxiv_id]` | Per-paper detail + 5 cosine-NN similar papers |
+| `/themes/[slug]` | Theme-filtered list |
+| `/archive/[year]/[month]` | Month-filtered list with prev/next nav |
+| `/status` | 30-day run grid + recent runs table |
+| `/about` | Stack, cost ledger |
+| `/docs/*` | Methodology + taxonomy (Fumadocs) |
 
 ## Documentation index
 
@@ -28,33 +46,38 @@ Runs autonomously, costs $0/month on free tiers, fully observable.
 | [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System design, components, data flow, failure modes |
 | [PLANNING.md](./docs/PLANNING.md) | Phases (V0 → V1 → V2), week-by-week roadmap |
 | [STACK.md](./docs/STACK.md) | Tech stack with rationale, alternatives considered |
-| [OBSERVABILITY.md](./docs/OBSERVABILITY.md) | Logging, metrics, tracing, alerts, SLOs |
-| [TESTING.md](./docs/TESTING.md) | Test pyramid, eval harness, regression gates |
 | [PROMPTS.md](./docs/PROMPTS.md) | Prompt design, versioning, shadow rollouts |
+| [OBSERVABILITY.md](./docs/OBSERVABILITY.md) | Logging, metrics, tracing, alerts |
+| [TESTING.md](./docs/TESTING.md) | Test pyramid, eval harness, regression gates |
 | [SECURITY.md](./docs/SECURITY.md) | Secrets, RLS, supply chain, hardening |
+| [CI_SECRETS.md](./docs/CI_SECRETS.md) | GH Actions secrets + variables setup |
+| [VERCEL_SETUP.md](./docs/VERCEL_SETUP.md) | Web deployment + env vars |
+| [runbooks/](./docs/runbooks/) | Operational runbooks |
 | [adr/](./docs/adr/) | Architecture Decision Records |
 
-## Quick start (when V0 ships)
+## Quick start
 
 ```bash
-# Install dependencies
+# Install
 pnpm install
 uv sync --directory apps/agent
 
-# Run agent locally
-uv run --directory apps/agent agent digest --dry-run
+# Run the agent locally (5 papers)
+cd apps/agent && uv run arxivdigest run --limit 5
 
-# Run site locally
+# Run the web app locally
 pnpm --filter web dev
 
-# Run tests
+# Tests
 pnpm test
 uv run --directory apps/agent pytest
 ```
 
-## Tech stack (one-line summary)
+You'll need a `.env` at the repo root with `DATABASE_URL`, `GROQ_API_KEY`, plus optional observability keys. See [.env.example](./.env.example).
 
-Python 3.12 batch agent (uv + LangGraph + Groq + Voyage + Pydantic) → Supabase Postgres + pgvector → Next.js 15 + Fumadocs + shadcn site on Vercel. Orchestrated daily via GitHub Actions. Observed via Langfuse + Sentry + structured logs.
+## Tech stack (one-line)
+
+Python 3.12 (uv + LangGraph + instructor + Groq + sentence-transformers) → Supabase Postgres + pgvector → Next.js 16 (App Router + Tailwind v4 + shadcn base-nova + Fumadocs) on Vercel. Orchestrated by GitHub Actions cron. Observed via Langfuse + Sentry + structlog.
 
 ## License
 
