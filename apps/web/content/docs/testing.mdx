@@ -1,0 +1,200 @@
+---
+title: Testing + Evals
+description: Test pyramid plus a separate eval harness for AI output quality. Both gated in CI; eval-regression gate runs on every daily cron.
+---
+
+> **Status (V0):** A small unit-test suite + a 4-phase eval harness with a
+> CI regression gate are live (see [/docs/evals](/docs/evals) for the harness
+> details). Integration tests with VCR, property tests with hypothesis,
+> Playwright site snapshots, and coverage gates are V1+ — the target test
+> pyramid is described below for context.
+
+## Philosophy
+
+Most AI side projects test exactly nothing. ArxivDigest treats testing as a
+**senior-engineering signal**: a real test pyramid for the code, a real
+eval harness for the AI quality, both gated in CI.
+
+## Test pyramid (target shape)
+
+```
+                ╱   ╲
+               ╱  E2E ╲          5%   (recorded LLM cassettes — V1+)
+              ╱─────────╲
+             ╱integration╲      20%   (adapters with mocked external — V1+)
+            ╱─────────────╲
+           ╱     unit       ╲   60%   (pure logic, fast, no mocks)
+          ╱─────────────────╲
+         ╱   property tests   ╲ 15%   (hypothesis invariants — V1+)
+        ╱─────────────────────╲
+```
+
+Plus a separate **[eval harness](/docs/evals)** for AI output quality.
+
+## What's live in V0
+
+### Unit tests
+
+Live: `apps/agent/tests/unit/`. Currently 3 tests (smoke + the
+`MultiLLMClient` failover happy + sad paths). The bar gradually rises as
+the suite grows.
+
+```python
+# tests/unit/test_multi_llm.py
+async def test_uses_primary_when_healthy() -> None:
+    client = MultiLLMClient(primary=StubLLM("primary"), fallback=StubLLM("fallback"))
+    summary = await client.summarize(_PAPER)
+    assert summary.problem == "primary"
+
+
+async def test_falls_back_when_primary_fails() -> None:
+    client = MultiLLMClient(
+        primary=StubLLM("primary", fail=True),
+        fallback=StubLLM("fallback"),
+    )
+    summary = await client.summarize(_PAPER)
+    assert summary.problem == "fallback"
+```
+
+Pure-logic targets to expand into:
+
+- `domain/ranking.blend_score` — invariants like clamp behavior
+- `domain/themes.normalize_themes` — taxonomy filtering, fallback, cap
+- `evals/metrics.*` — F1 math, keyword coverage edge cases
+- Prompt-rendering functions
+
+### Linting + type checking
+
+Every PR runs (and must pass) `ci.yml`:
+
+- `uv run ruff check src/` — strict; many rules selected
+- `uv run mypy src/` — strict mode, 54+ files clean
+- `uv run pytest -q` — current suite
+
+Web side:
+
+- `pnpm --filter web lint` — ESLint with `--max-warnings 0`
+- `pnpm --filter web check-types` — `next typegen && tsc --noEmit`
+- `pnpm --filter web build` — production build must succeed
+
+### Eval harness
+
+Full description in [/docs/evals](/docs/evals). What's live:
+
+- 95 hand-labeled papers in `evals/ground_truth.jsonl`
+- `arxivdigest eval` re-classifies the ground truth via the agent's
+  current classify prompt, computes multi-label F1 (micro + macro +
+  per-theme), schema validity, and keyword coverage against the stored
+  summaries.
+- `evals/baseline.json` defines metric floors.
+- `--fail-on-regression` exits non-zero if any metric drops below floor.
+- New step in `daily-digest.yml` runs the gate after publish + revalidate,
+  failing the workflow on regression. See
+  [ADR-0008](/docs/adr/0008-daily-cron-eval-gate) for the daily-cron-not-per-PR choice.
+- Append-only `evals/metrics/history.jsonl` records every run.
+- `/about` Quality block + 3 shields.io badges on the README surface the
+  current numbers.
+
+## V1+ test layers
+
+### Integration tests (planned, ~20%)
+
+Real adapter code, mocked external services via `respx` for httpx-based
+adapters. Catches wiring bugs that unit tests miss. Plus real-DB
+integration tests via Supabase CLI (`supabase start` + ephemeral pg) for
+the repository adapter.
+
+### E2E with VCR cassettes (planned, ~5%)
+
+`pytest-vcr` records HTTP responses on first run, replays them
+deterministically forever. Zero LLM cost on CI; fully reproducible.
+
+```python
+@pytest.mark.vcr  # records to tests/integration/cassettes/test_full_run.yaml
+async def test_full_pipeline_on_sample_papers(test_db, sample_arxiv_response):
+    """End-to-end: 3 papers in → 3 published rows."""
+    ...
+```
+
+When prompts change, cassettes need re-recording — the diff in PR is the
+visible artifact of LLM behavior change.
+
+### Property tests (planned, ~15%)
+
+`hypothesis` generates random inputs to find edge cases unit tests miss.
+
+```python
+@given(novelty=st.floats(min_value=0.0, max_value=1.0),
+       impact=st.floats(min_value=0.0, max_value=1.0))
+def test_blend_score_always_in_unit_interval(novelty, impact):
+    assert 0.0 <= blend_score(novelty, impact) <= 1.0
+```
+
+Signal: "I test invariants, not just examples."
+
+### Site Playwright snapshots (planned)
+
+For the Next.js side, Playwright E2E snapshot tests on the key routes:
+
+```typescript
+test('/papers renders today\'s digest', async ({ page }) => {
+  await page.goto('/papers');
+  await expect(page.locator('h1')).toContainText("Latest papers");
+});
+```
+
+### Regression / golden tests (planned)
+
+Pin output structure for a small set of "well-known" papers — if Pydantic
+schema breaks, CI fails. Caught early when the JSON shape of `summary`
+or `themes` is accidentally changed.
+
+## Local dev workflow
+
+```sh
+# Fast inner loop
+cd apps/agent && uv run pytest tests/unit -x
+
+# Full agent suite
+uv run pytest -q
+
+# Lint + typecheck (matches CI)
+uv run ruff check src/ && uv run mypy src/
+
+# Run evals locally before pushing
+uv run arxivdigest eval                  # smoke
+uv run arxivdigest eval --fail-on-regression  # mimics the daily gate
+
+# Web side
+pnpm --filter web lint && pnpm --filter web check-types && pnpm --filter web build
+```
+
+## CI today
+
+`.github/workflows/ci.yml` runs on every PR (`main` + `dev`):
+
+- **Node — lint / typecheck / build**: pnpm install, turbo lint, turbo
+  check-types, turbo build.
+- **Python — ruff / mypy / pytest**: uv sync, ruff check, mypy strict,
+  pytest.
+
+`.github/workflows/daily-digest.yml` runs once per day on `main`:
+
+- Run digest pipeline → revalidate web pages → **eval regression gate**.
+
+V1+ planned CI additions:
+
+- `test-integration` job with Supabase CLI for real-DB tests
+- `eval-gate` job on PRs (separately from the daily-cron eval) for tight
+  feedback (see [ADR-0008](/docs/adr/0008-daily-cron-eval-gate) for why
+  we picked daily-only for V0)
+- Coverage gates via Codecov
+
+## Cross-references
+
+- [/docs/evals](/docs/evals) — the eval harness in detail
+- [Prompts](/docs/prompts) — how prompt changes get eval-gated
+- [Observability](/docs/observability) — eval drift surfaces here too
+- [ADR-0004 — hexagonal architecture](/docs/adr/0004-hexagonal-architecture)
+  — why this architecture is easy to test
+- [ADR-0008 — daily-cron eval gate](/docs/adr/0008-daily-cron-eval-gate)

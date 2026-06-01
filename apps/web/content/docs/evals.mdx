@@ -1,0 +1,126 @@
+---
+title: Eval Harness
+description: How ArxivDigest measures its own quality — 95 hand-labeled ground-truth papers, multi-label F1, schema validity, keyword coverage. Runs as the daily cron's last step.
+---
+
+## What it does
+
+The eval harness re-classifies a 95-paper hand-labeled ground-truth set
+with the **current** prompt + model on every run, then compares against
+the labels. It runs as the last step of the daily cron (after publish +
+revalidate) — so a quality regression flags the workflow red without
+blocking the day's digest from shipping.
+
+> The current numbers are live on [/about](/about#quality) and as badges on
+> the [GitHub README](https://github.com/imtiaj-007/ArxivDigest). They
+> update with each commit of `evals/last_report.json` to `main`.
+
+## What gets measured
+
+| Metric | How | V0 target | Why |
+|---|---|---|---|
+| **Classification F1 (micro)** | multi-label theme agreement, pooled over all (paper, theme) pairs | ≥ 0.80 | Headline number — does the agent pick the same themes a human would |
+| **Classification F1 (macro)** | per-theme F1 averaged | ≥ 0.80 | Catches the case where the agent nails common themes but misses thin ones |
+| **Per-theme F1** | F1 broken down per theme | — | Reveals which specific themes the agent struggles with |
+| **Schema validity rate** | fraction of LLM calls that produced a valid Pydantic object first try | ≥ 0.95 | Catches model output drift (would have caught the `rank/v1` schema bug earlier) |
+| **Summary keyword coverage** | fraction of expected-keyword strings substring-present in the stored summary | ≥ 0.65 | Sanity-checks that summaries mention the substantive terms a human labelled as essential |
+
+Baseline floors live in `evals/baseline.json`; the gate fails the workflow
+if any metric drops below.
+
+## How the harness runs
+
+```sh
+cd apps/agent && uv run arxivdigest eval
+```
+
+Per paper in `ground_truth.jsonl`:
+
+1. Fetch the paper row from DB by `arxiv_id`.
+2. Call `llm.classify(paper)` — same code path as the daily cron, so the
+   metric reflects the **current** classify prompt + model.
+3. Compare the returned themes (after the same `normalize_themes` guard)
+   against the human labels → per-paper precision/recall.
+4. Pull the stored summary; compute keyword coverage (substring,
+   case-insensitive) against the expected keyword list.
+5. Bulkhead: any LLM failure logs + skips that paper (counts toward
+   `schema_validity_rate`).
+
+Aggregate → JSON report at `evals/last_report.json` + append a compact line
+to `evals/metrics/history.jsonl` for trend tracking.
+
+## CI integration
+
+`daily-digest.yml` runs as the last step:
+
+```yaml
+- name: Eval regression gate
+  if: success()
+  run: uv run arxivdigest eval --fail-on-regression
+```
+
+If any metric drops below `baseline.json`, the step exits non-zero → the
+workflow goes red → Sentry / email picks it up. The day's digest has
+already been published and revalidated by this point; the gate's job is
+to flag, not block.
+
+See [ADR-0008 — daily-cron eval gate](/docs/adr/0008-daily-cron-eval-gate)
+for the rationale (cheaper than per-PR; no friction; trades immediacy
+for cost).
+
+## Ground truth ([open it on GitHub](https://github.com/imtiaj-007/ArxivDigest/blob/main/evals/ground_truth.jsonl))
+
+95 papers from the agent's actual crawl, hand-labeled with:
+
+- `expected_themes` — 1-3 slugs from the [14-theme taxonomy](/docs/themes), most relevant first.
+- `expected_summary_keywords` — 3-7 substantive terms any decent summary
+  should mention. Acronyms (`KV cache`, `RAG`), capitalized concepts
+  (`Vision Transformer`), hyphenated compounds (`low-rank`,
+  `minute-scale`). Excludes generic words ("paper", "method") and
+  author names.
+
+The labeling was done via `arxivdigest label` (interactive helper that
+proposes themes + keywords from the agent's output; user reviews each
+with `[a]ccept / [e]dit / [s]kip`). About 45-60 minutes of review for the
+full 95-paper pass.
+
+## Why not auto-label with a stronger LLM?
+
+That would make the metric "does the agent agree with a different LLM"
+instead of "does the agent agree with a human." Useful as a sanity check,
+not as a quality gate. Every label in this set is human-vetted.
+
+## V0 results (latest)
+
+Current numbers and per-theme breakdown are rendered on
+[**/about → Quality**](/about#quality) — single source of truth for the
+live metrics, pulled from `evals/last_report.json` at build time.
+
+In practice, the agent's micro F1 sits in the **0.85-0.91** range across
+runs; macro F1 in **0.88-0.93**; schema validity at **100%**; keyword
+coverage around **0.70**. Run-to-run variance is ~0.04 from Groq's
+stochastic decoding at temp=0.2, which is why the baseline floors leave
+~0.10 headroom.
+
+## What's NOT in V0
+
+- **Ranking stability** — comparing two consecutive runs' rankings via
+  Kendall's tau (doubles eval cost; revisit if scores drift visibly).
+- **Token / cost tracking** — Groq is free; no $-tracking yet. V1+ when
+  paid inference enters.
+- **Relevance precision/recall** — TESTING.md envisioned a relevance-filter
+  stage; we don't have one (every crawled paper gets summarized). Drop
+  the metric unless the filter is added.
+- **Per-PR eval gate** — currently daily-only (see ADR-0008).
+- **Persistent history across CI runs** — `history.jsonl` lives on the
+  ephemeral runner disk. Future enhancement: commit it back via CI bot or
+  upload as a workflow artifact.
+
+## Cross-references
+
+- [Methodology](/docs/methodology) — pipeline that the eval grades
+- [Theme taxonomy](/docs/themes) — what classify chooses from
+- [Testing](/docs/testing) — broader test pyramid
+- [ADR-0008 — daily-cron eval gate](/docs/adr/0008-daily-cron-eval-gate)
+- [README badges](https://github.com/imtiaj-007/ArxivDigest) — live values
+- [/about](/about) — full Quality table on the live site

@@ -1,0 +1,15 @@
+---
+title: Runbooks
+description: Operational playbooks for when something breaks on the daily cron.
+---
+
+Compact triage docs for the failure modes that have actually happened (or are
+realistically going to happen). Each one is a 5-minute read with the
+symptoms first, mitigations second, recovery checks third.
+
+| Runbook | When it fires |
+|---|---|
+| [Groq down or rate-limiting](/docs/runbooks/groq-down) | `daily-digest` red with repeating `paper_failed` logs; Groq 5xx or persistent 429s |
+
+More runbooks land here as new failure modes surface (Supabase paused, eval
+regression, etc.).

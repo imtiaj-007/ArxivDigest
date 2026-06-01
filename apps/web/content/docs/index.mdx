@@ -1,17 +1,35 @@
 ---
 title: Documentation
-description: How ArxivDigest works under the hood — methodology, taxonomy, and design decisions.
+description: How ArxivDigest works under the hood — methodology, architecture, evals, and design decisions.
 ---
 
 ArxivDigest is an autonomous daily AI agent that scans new arxiv `cs.AI`, `cs.LG`,
 and `cs.CL` submissions, produces structured TL;DRs, classifies them by theme, and
 ranks them by novelty and impact — all on free-tier infrastructure, $0/month.
 
-## What's in here
+## Start here
 
 - **[Methodology](/docs/methodology)** — the pipeline stage by stage: prompts, models,
   the idempotent resume design, rate-limit handling, ranking math.
 - **[Theme taxonomy](/docs/themes)** — the 14 themes and what each one covers.
+
+## Engineering
+
+- **[Architecture](/docs/architecture)** — hexagonal layering, the 6-stage LangGraph
+  pipeline, schema, DB-as-checkpoint resume.
+- **[Tech stack](/docs/stack)** — every layer with the why-this-and-not-that.
+- **[Prompts](/docs/prompts)** — prompts-as-code, Pydantic-validated outputs, the
+  `rank/v1 → rank/v2` story.
+- **[Testing](/docs/testing)** — what's tested today, what's planned, the pyramid.
+- **[Eval harness](/docs/evals)** — multi-label F1, schema validity, keyword
+  coverage, daily-cron regression gate.
+- **[Observability](/docs/observability)** — structlog, Langfuse, Sentry, `runs`
+  table, SLOs.
+- **[Security](/docs/security)** — threat model, secrets, RLS, defense-in-depth.
+
+## Operations
+
+- **[Runbooks](/docs/runbooks)** — what to do when something breaks.
 - **[Architecture Decision Records](/docs/adr)** — 8 ADRs covering every significant
   technical choice (pure-batch, Supabase, uv, hexagonal, Vercel, local BGE,
   DB-as-checkpoint, daily-cron eval gate) — what we picked, what we rejected, why.

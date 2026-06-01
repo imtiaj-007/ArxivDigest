@@ -43,25 +43,36 @@ Runs autonomously, costs **$0/month** on free tiers, every LLM call traced in La
 | `/themes/[slug]` | Theme-filtered list |
 | `/archive/[year]/[month]` | Month-filtered list with prev/next nav |
 | `/status` | 30-day run grid + recent runs table |
-| `/about` | Stack, cost ledger |
-| `/docs/*` | Methodology + taxonomy (Fumadocs) |
+| `/about` | Stack, cost ledger, live quality metrics |
+| `/docs/*` | Engineering docs (Fumadocs): methodology, architecture, stack, prompts, testing, evals, observability, security, runbooks, ADRs |
 
 ## Documentation index
+
+Engineering + ops docs live on the **site** so they're easy to browse and stay
+versioned alongside the code that generates them:
+
+| Doc | Live URL |
+|---|---|
+| Methodology | [/docs/methodology](https://arxiv-digest-preview.vercel.app/docs/methodology) |
+| Theme taxonomy | [/docs/themes](https://arxiv-digest-preview.vercel.app/docs/themes) |
+| Architecture | [/docs/architecture](https://arxiv-digest-preview.vercel.app/docs/architecture) |
+| Tech stack | [/docs/stack](https://arxiv-digest-preview.vercel.app/docs/stack) |
+| Prompts | [/docs/prompts](https://arxiv-digest-preview.vercel.app/docs/prompts) |
+| Testing | [/docs/testing](https://arxiv-digest-preview.vercel.app/docs/testing) |
+| Eval harness | [/docs/evals](https://arxiv-digest-preview.vercel.app/docs/evals) |
+| Observability | [/docs/observability](https://arxiv-digest-preview.vercel.app/docs/observability) |
+| Security | [/docs/security](https://arxiv-digest-preview.vercel.app/docs/security) |
+| Runbooks | [/docs/runbooks](https://arxiv-digest-preview.vercel.app/docs/runbooks) |
+| Architecture Decision Records | [/docs/adr](https://arxiv-digest-preview.vercel.app/docs/adr) |
+
+Repo-only (setup + meta — not user-facing):
 
 | Doc | Purpose |
 |---|---|
 | [PROJECT.md](./docs/PROJECT.md) | Vision, scope, success criteria, non-goals |
-| [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System design, components, data flow, failure modes |
 | [PLANNING.md](./docs/PLANNING.md) | Phases (V0 → V1 → V2), week-by-week roadmap |
-| [STACK.md](./docs/STACK.md) | Tech stack with rationale, alternatives considered |
-| [PROMPTS.md](./docs/PROMPTS.md) | Prompt design, versioning, shadow rollouts |
-| [OBSERVABILITY.md](./docs/OBSERVABILITY.md) | Logging, metrics, tracing, alerts |
-| [TESTING.md](./docs/TESTING.md) | Test pyramid, eval harness, regression gates |
-| [SECURITY.md](./docs/SECURITY.md) | Secrets, RLS, supply chain, hardening |
 | [CI_SECRETS.md](./docs/CI_SECRETS.md) | GH Actions secrets + variables setup |
 | [VERCEL_SETUP.md](./docs/VERCEL_SETUP.md) | Web deployment + env vars |
-| [runbooks/](./docs/runbooks/) | Operational runbooks |
-| [Architecture Decision Records](https://arxiv-digest-preview.vercel.app/docs/adr) | 8 ADRs covering every significant tech choice — rendered on the live site |
 
 ## Quick start
 

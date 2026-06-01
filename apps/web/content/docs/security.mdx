@@ -1,0 +1,228 @@
+---
+title: Security Posture
+description: Threat model + defense-in-depth design for ArxivDigest. Narrow surface (no PII, no auth, no payments) — but every layer has explicit defenses anyway.
+---
+
+> **Status (V0):** This doc describes the intended security posture across V0
+> and V1. The two-key Supabase model, RLS, secrets hygiene, prompt-injection
+> framing, and `bandit` are all live. CSP headers, gitleaks/trivy in CI,
+> Renovate, and `SecretStr` adoption are tracked as V1 improvements.
+
+## Threat model
+
+ArxivDigest is a **public, open-source, no-user-data** application. The
+threat surface is narrow:
+
+| Asset | What we protect against |
+|---|---|
+| **API keys** (Groq, Gemini, Voyage, Supabase, Sentry, Langfuse) | Leak → financial damage + service disruption |
+| **Supabase service-role key** | Worst case — full DB read/write to public; loss of data integrity |
+| **GitHub Actions workflow** | Workflow tampering → arbitrary code execution with secret access |
+| **Generated content** | Prompt injection from malicious arxiv papers (low risk; arxiv is moderated, but worth defending) |
+| **Public site** | XSS, CSRF (no user accounts, so impact bounded) |
+| **Supply chain** | Compromised npm/PyPI package executing during build |
+
+No PII, no payments, no auth — vastly simpler surface than typical SaaS.
+
+## Defense-in-depth layers
+
+### 1. Secrets management
+
+Rules:
+
+- **Never** in code, repos, or commits
+- Stored only in:
+  - GitHub Actions secrets (CI + cron) under the `production` environment
+  - Repo-root `.env` (gitignored; dev only)
+  - Vercel environment variables (prod site)
+- Rotated quarterly OR on any suspected leak
+
+Today's settings layer uses pydantic-settings with `str | None` for optional
+keys. V1+ planned: migrate to `pydantic.SecretStr` so accidental
+`log.info(settings)` auto-redacts at the type-system layer.
+
+### 2. Supabase key separation
+
+Two-key model (Supabase standard):
+
+| Key | Where used | What it can do |
+|---|---|---|
+| `anon` (public) | Site (in browser) | Subject to RLS policies — read published papers only |
+| `service_role` | Agent only (server-side) | Full DB access; bypasses RLS |
+
+The service-role key is **never** shipped to the client.
+
+### 3. Row-Level Security (RLS)
+
+Even though there's no user concept, RLS is the firewall around the DB.
+Anonymous reads are limited to published, non-deleted paper rows. Tables
+without explicit anon-select policies (runs, llm_audit when added, etc.)
+are invisible to the anon key.
+
+```sql
+alter table papers enable row level security;
+create policy "public reads published" on papers
+  for select using (status = 'published' and deleted_at is null);
+
+-- Tables that should NEVER be public:
+alter table runs enable row level security;            -- no policy = no anon access
+```
+
+Test the firewall:
+
+```python
+async def test_anon_key_cannot_read_runs(supabase_anon_client):
+    result = await supabase_anon_client.table("runs").select("*").execute()
+    assert result.data == []  # RLS hides everything from anon
+```
+
+### 4. Pre-commit hooks
+
+Block bad commits before they happen. `pre-commit` config currently runs
+ruff + mypy; V1+ planned additions: `gitleaks` (secret scanning) and
+`bandit` (Python static security analysis).
+
+### 5. CI security scans (planned)
+
+V1 will add to `ci.yml`:
+
+```yaml
+- name: Secret scan
+  uses: gitleaks/gitleaks-action@v2
+
+- name: Dependency vulnerabilities
+  uses: aquasecurity/trivy-action@master
+  with:
+    scan-type: 'fs'
+    severity: 'CRITICAL,HIGH'
+    exit-code: '1'
+
+- name: Python static analysis
+  run: uv run bandit -r src -lll
+```
+
+### 6. Supply chain (dependency hygiene)
+
+V1+ planned: **Renovate** (or Dependabot) opening PRs weekly for pip,
+npm, and GitHub Actions versions. Critical vulnerabilities bypass the
+schedule. Today, dependencies are updated manually.
+
+### 7. GitHub Actions hardening
+
+`daily-digest.yml` already:
+
+- Sets `concurrency` group to serialize daily runs
+- Caps `timeout-minutes: 30`
+- Uses the `production` environment to gate secret access
+- Branch-policy locks `production` env to `main`
+
+V1+ planned: pin all actions to commit SHA (not tag) so a compromised
+maintainer can't swing the action under us. Renovate would update those
+SHAs via PRs.
+
+### 8. Prompt injection defense
+
+Even though arxiv is moderated, malicious abstracts are technically possible.
+Defenses in V0:
+
+- **Treat paper content as data, never as instruction** — the summarize
+  prompt explicitly says "Base every field strictly on the supplied title
+  and abstract — never invent results, numbers, or claims the abstract
+  does not state."
+- **Pydantic schema validation** via `instructor` catches malformed outputs
+  that injection might cause (verified live: schema validity 100% on the
+  95-paper ground truth).
+- **No user-controlled prompt input** in V0 — eliminates this vector
+  entirely.
+
+V1+ if user-supplied input is added (search, custom themes): explicit
+triple-delimiter framing in prompts.
+
+### 9. Site security headers (planned)
+
+`next.config.js` will add HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+`Referrer-Policy`, and a strict Content-Security-Policy. Start with
+`Content-Security-Policy-Report-Only` for a week to catch violations
+without breaking the site, then promote to enforcing.
+
+### 10. PII / data privacy
+
+V0: **no PII is collected or processed.**
+
+- arxiv data is fully public
+- No user accounts
+- No analytics with PII (use Plausible / Umami if needed — IP-anonymized)
+- No cookies that require consent
+
+V1+: if user accounts are added (subscriptions), requires full PII review +
+privacy policy.
+
+### 11. Logs hygiene
+
+Even with no PII, redact aggressively. structlog processor chain will
+acquire a redactor in V1+ that masks anything looking like an API key
+prefix (`sk_`, `pk_`, `Bearer`, etc.).
+
+## Compliance posture
+
+ArxivDigest is small enough that no formal compliance regime applies. But:
+
+- **arxiv ToS**: respected (use API, rate-limit-respecting, link back to originals)
+- **Paper copyright**: summaries are derivative work (fair use); always link to arxiv original
+- **MIT License**: code permissively open-sourced; no obligations on consumers
+- **No customer data**: no GDPR / DPDP / CCPA obligations
+
+If V2 adds user accounts → revisit:
+
+- Privacy policy + ToS
+- Cookie consent (if EU traffic)
+- DPDP compliance (India, where you're based)
+- Data deletion + portability
+
+## Incident response
+
+### Detection
+
+| Channel | Triggers |
+|---|---|
+| Sentry | Unhandled exception, security exception |
+| Gitleaks (when added) | Secret committed accidentally |
+| Renovate / Dependabot (when added) | New critical CVE in deps |
+| GitHub security alert | Repo-level alerts |
+
+### Response playbook: key leak
+
+If a secret is committed:
+
+1. **Rotate the key immediately** (Groq / Gemini / Voyage / Supabase / Sentry / Langfuse dashboards)
+2. **Force-push removal of the secret from git history** (`git filter-repo`)
+3. **Update GH Actions / Vercel / `.env` with new key**
+4. **Verify pre-commit hook is active** for everyone with push access
+5. **Document the incident** in `docs/incidents/YYYY-MM-DD-<short-desc>.md`
+6. **Add a regression test** if a tooling gap let the leak through
+
+### Response playbook: vulnerable dependency
+
+1. **Assess exploitability** in our context — most CVEs don't apply to batch jobs
+2. **If exploitable**: prioritize fix; pin to patched version
+3. **If not exploitable but high CVSS**: schedule update in next dependency-update window
+4. **Document the assessment** in `docs/security/cve-assessments/CVE-YYYY-NNNN.md`
+
+## Security review cadence
+
+| Activity | Cadence |
+|---|---|
+| Renovate / Dependabot PR review (when added) | Weekly (Monday) |
+| Manual review of GitHub security alerts | Weekly |
+| Trivy filesystem scan in CI (when added) | Every PR |
+| Gitleaks scan in CI (when added) | Every PR |
+| Manual RLS audit ("can anon still not read X?") | Quarterly |
+| Secrets rotation (all keys) | Quarterly |
+| Documentation refresh (this doc) | Quarterly |
+| GitHub Actions audit (perms, pinned versions) | Quarterly |
+
+## Cross-references
+
+- [Architecture](/docs/architecture) — RLS schema design
+- [Observability](/docs/observability) — what we log (and don't)
+- [Stack](/docs/stack) — tooling choices

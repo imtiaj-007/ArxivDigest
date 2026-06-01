@@ -1,4 +1,19 @@
 {
   "title": "ArxivDigest Docs",
-  "pages": ["index", "methodology", "themes", "adr"]
+  "pages": [
+    "index",
+    "methodology",
+    "themes",
+    "---Engineering---",
+    "architecture",
+    "stack",
+    "prompts",
+    "testing",
+    "evals",
+    "observability",
+    "security",
+    "---Operations---",
+    "runbooks",
+    "adr"
+  ]
 }

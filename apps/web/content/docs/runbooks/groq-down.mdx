@@ -1,4 +1,7 @@
-# Runbook: Groq is down or rate-limiting hard
+---
+title: Groq down or rate-limiting hard
+description: Symptoms, triage, mitigations and recovery checks when the daily cron starts failing on Groq calls.
+---
 
 When the daily cron starts failing on Groq calls — `RateLimitError` loops,
 `APIStatusError` 5xx, or just dead silence — this is the first place to look.
@@ -10,9 +13,9 @@ When the daily cron starts failing on Groq calls — `RateLimitError` loops,
 - `/status` shows today's square as red.
 - `/papers` is stale (yesterday's digest still up).
 
-## Quick triage (≤ 2 min)
+## Quick triage (~2 min)
 
-1. **Check Groq's status page** — https://groqstatus.com/
+1. **Check Groq's status page** — [groqstatus.com](https://groqstatus.com/)
 2. **Read the latest run's log:**
    ```sh
    gh run view --workflow daily-digest.yml --log | tail -150
@@ -20,8 +23,8 @@ When the daily cron starts failing on Groq calls — `RateLimitError` loops,
 3. **Classify the error:**
    - `429 RateLimitError` repeating → TPM exhaustion (most common; usually
      local-account-burn or unusually long abstracts).
-   - `5xx` / connection timeouts → Groq-side outage.
-   - `400` with model name → the model was retired/renamed; update
+   - `5xx` or connection timeouts → Groq-side outage.
+   - `400` with model name → the model was retired or renamed; update
      `DEFAULT_HEAVY_MODEL` / `DEFAULT_FAST_MODEL` in
      `apps/agent/src/arxivdigest/adapters/llm/groq.py`.
 
@@ -30,7 +33,8 @@ When the daily cron starts failing on Groq calls — `RateLimitError` loops,
 ### Groq is down (5xx, timeouts)
 
 The `MultiLLMClient` wrapper exists for exactly this case, but Gemini's
-free tier is currently exhausted, so failover is effectively a no-op.
+free tier is currently exhausted, so failover is effectively a no-op (see
+[ADR-0006](/docs/adr/0006-local-bge-over-voyage) for the free-tier context).
 
 - **Wait it out.** Every stage is idempotent: paper rows with `summary IS NULL`
   (or `themes IS NULL`, etc.) get retried on the next cron. One missed day
@@ -91,7 +95,7 @@ gh run watch
 - **Free-tier Groq limits:** 6000/day on `llama-3.3-70b-versatile`, 14400/day
   on `llama-3.1-8b-instant`. Per-minute TPM is what bites in bursts; the
   `aiolimiter` mitigates that proactively (see
-  [methodology → rate-limit defenses](https://arxiv-digest-preview.vercel.app/docs/methodology)).
+  [methodology → rate-limit defenses](/docs/methodology)).
 - **Failover dormancy:** Re-enabling Gemini is one workflow line —
   `GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}` in `daily-digest.yml`.
   Code is already wired.
