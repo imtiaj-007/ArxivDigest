@@ -3,10 +3,15 @@ title: Observability + Monitoring
 description: Logs, LLM traces, errors, and run history — how ArxivDigest knows it's healthy. structlog + Langfuse + Sentry + a runs table.
 ---
 
-> **Status (V0):** structlog, Langfuse v4, Sentry, and the `runs` table are
-> live and exercised by the daily cron. Cost tracking, heartbeat, orphan
-> detection, and a Grafana-style SLO dashboard are V1+ enhancements
-> described below for context.
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Code2, Layers, ScrollText, Workflow } from "lucide-react";
+
+<Callout type="info" title="Status (V0)">
+  structlog, Langfuse v4, Sentry, and the `runs` table are live and
+  exercised by the daily cron. Cost tracking, heartbeat, orphan detection,
+  and a Grafana-style SLO dashboard are V1+ enhancements described below.
+</Callout>
 
 ## Philosophy
 
@@ -223,7 +228,9 @@ No PII handled in V0 (arxiv data is fully public; no user accounts).
 
 ## Cross-references
 
-- [Architecture](/docs/architecture) — system design that this observes
-- [Methodology](/docs/methodology) — pipeline stages with their tracing
-- [Stack](/docs/stack) — tooling choices
-- [ADR-0008 — daily-cron eval gate](/docs/adr/0008-daily-cron-eval-gate)
+<Cards>
+  <Card href="/docs/architecture" icon={<Layers className="text-fd-primary" />} title="Architecture" description="The system design this observes." />
+  <Card href="/docs/methodology" icon={<Workflow className="text-fd-primary" />} title="Methodology" description="Pipeline stages with their tracing." />
+  <Card href="/docs/stack" icon={<Code2 className="text-fd-primary" />} title="Stack" description="Tooling choices behind each pillar." />
+  <Card href="/docs/adr/0008-daily-cron-eval-gate" icon={<ScrollText className="text-fd-primary" />} title="ADR-0008" description="Daily-cron eval gate enforces F1+schema SLOs." />
+</Cards>

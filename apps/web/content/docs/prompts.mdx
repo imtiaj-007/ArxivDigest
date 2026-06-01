@@ -3,9 +3,16 @@ title: Prompt Design + Versioning
 description: How prompts are written, versioned, validated, and rolled out in ArxivDigest. They are code that ships to production — treated as such.
 ---
 
-> **Status (V0):** Prompts-as-code + Pydantic-validated outputs are live.
-> Shadow rollouts, a `prompt_versions` DB table, and full prompt-attribution
-> per paper are V1+ ideas described below for context.
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { TypeTable } from "fumadocs-ui/components/type-table";
+import { ScrollText, Sparkles, Tags, TerminalSquare, Workflow } from "lucide-react";
+
+<Callout type="info" title="Status (V0)">
+  Prompts-as-code + Pydantic-validated outputs are live. Shadow rollouts,
+  a `prompt_versions` DB table, and full prompt-attribution per paper are
+  V1+ ideas described below for context.
+</Callout>
 
 ## Why prompts are the highest-leverage code
 
@@ -72,26 +79,37 @@ this module and tags the Langfuse trace with `prompt_version=VERSION`.
 
 Every LLM call has a Pydantic output model.
 [`instructor`](https://github.com/jxnl/instructor) automatically retries on
-schema validation failure with a reformulated prompt.
+schema validation failure with a reformulated prompt. Field `description`s
+aren't just docs — they're embedded in the prompt that instructor sends,
+doubling as extraction guidance.
 
-```python
-# domain/models.py
-class PaperSummary(BaseModel):
-    problem: str = Field(description="The problem the paper addresses, one sentence.")
-    approach: str = Field(description="The core method or idea proposed.")
-    result: str = Field(description="The main quantitative or qualitative result.")
-    why_it_matters: str = Field(description="Why a practitioner should care.")
+### `PaperSummary` — summarize stage
 
-class Classification(BaseModel):
-    themes: list[str] = Field(description="1-3 theme slugs, most relevant first.")
+<TypeTable
+  type={{
+    problem: { type: "str", description: "The problem the paper addresses, one sentence." },
+    approach: { type: "str", description: "The core method or idea proposed." },
+    result: { type: "str", description: "The main quantitative or qualitative result." },
+    why_it_matters: { type: "str", description: "Why a practitioner should care." },
+  }}
+/>
 
-class ImpactAssessment(BaseModel):
-    score: float = Field(ge=0.0, le=1.0)
-    reasoning: str
-```
+### `Classification` — classify stage
 
-Field `description`s aren't just docs — they're embedded in the prompt
-that instructor sends, doubling as extraction guidance.
+<TypeTable
+  type={{
+    themes: { type: "list[str]", description: "1–3 theme slugs from the 14-theme taxonomy, most relevant first. Post-validated by `normalize_themes`." },
+  }}
+/>
+
+### `ImpactAssessment` — rank stage (impact)
+
+<TypeTable
+  type={{
+    score: { type: "float", description: "Calibrated 0–1 impact rating. Prompt nudges 'most land between 0.3–0.6'." },
+    reasoning: { type: "str", description: "One sentence justifying the score." },
+  }}
+/>
 
 What this gives:
 
@@ -113,18 +131,20 @@ just describes what each field means.
 
 ### 2. Constrain output shape explicitly
 
-Hard-won lesson from `rank/v1`: the 8B model returned `[{schema, answer}]`
-(array-wrapped, included the schema definition in the response) for one
-particular paper, deterministically, on every retry. Fix in `rank/v2`:
+<Callout type="warn" title="The rank/v1 → rank/v2 lesson">
+  The 8B model returned `[{schema, answer}]` (array-wrapped, included the
+  schema definition in the response) for one particular paper,
+  **deterministically**, on every retry. Fix in `rank/v2`:
 
-> *Output format (strict): return ONLY a single JSON object with exactly
-> two keys: `score` (a number between 0 and 1) and `reasoning` (one
-> sentence explaining the score). Do NOT wrap the object in an array.
-> Do NOT include any other keys, prefaces, or commentary.*
+  > *Output format (strict): return ONLY a single JSON object with exactly
+  > two keys: `score` (a number between 0 and 1) and `reasoning` (one
+  > sentence explaining the score). Do NOT wrap the object in an array.
+  > Do NOT include any other keys, prefaces, or commentary.*
 
-After the bump, the affected paper started scoring cleanly. The lesson:
-when a small model drifts the output shape, be explicit about what you
-do *and don't* want.
+  After the bump, the affected paper started scoring cleanly. When a
+  small model drifts the output shape, be explicit about what you do
+  *and don't* want.
+</Callout>
 
 ### 3. Calibration nudges beat post-hoc clipping
 
@@ -209,7 +229,10 @@ Today's flow:
 
 ## Cross-references
 
-- [Methodology](/docs/methodology) — each stage's prompt in context
-- [Theme taxonomy](/docs/themes) — what classify chooses from
-- [Testing + Evals](/docs/testing) — how prompts get eval-gated
-- [ADR-0008 — daily-cron eval gate](/docs/adr/0008-daily-cron-eval-gate)
+<Cards>
+  <Card href="/docs/methodology" icon={<Workflow className="text-fd-primary" />} title="Methodology" description="Each stage's prompt in context." />
+  <Card href="/docs/themes" icon={<Tags className="text-fd-primary" />} title="Theme taxonomy" description="What classify chooses from." />
+  <Card href="/docs/testing" icon={<TerminalSquare className="text-fd-primary" />} title="Testing" description="Where prompts get eval-gated." />
+  <Card href="/docs/evals" icon={<Sparkles className="text-fd-primary" />} title="Eval harness" description="Multi-label F1 + schema + keyword coverage." />
+  <Card href="/docs/adr/0008-daily-cron-eval-gate" icon={<ScrollText className="text-fd-primary" />} title="ADR-0008" description="Why the regression gate runs daily, not per-PR." />
+</Cards>

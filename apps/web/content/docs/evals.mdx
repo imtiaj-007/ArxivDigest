@@ -3,6 +3,18 @@ title: Eval Harness
 description: How ArxivDigest measures its own quality — 95 hand-labeled ground-truth papers, multi-label F1, schema validity, keyword coverage. Runs as the daily cron's last step.
 ---
 
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { BookOpen, GitBranch, ScrollText, Tags, TerminalSquare, Workflow } from "lucide-react";
+
+<EvalMetricsCard />
+
+<Callout type="info" title="What you're looking at">
+  Live block above is generated at build time from `evals/last_report.json`
+  (the last committed eval run). Green = above floor, amber = below.
+  Per-theme F1 chips: green ≥ 0.85, amber &lt; 0.75.
+</Callout>
+
 ## What it does
 
 The eval harness re-classifies a 95-paper hand-labeled ground-truth set
@@ -118,9 +130,11 @@ stochastic decoding at temp=0.2, which is why the baseline floors leave
 
 ## Cross-references
 
-- [Methodology](/docs/methodology) — pipeline that the eval grades
-- [Theme taxonomy](/docs/themes) — what classify chooses from
-- [Testing](/docs/testing) — broader test pyramid
-- [ADR-0008 — daily-cron eval gate](/docs/adr/0008-daily-cron-eval-gate)
-- [README badges](https://github.com/imtiaj-007/ArxivDigest) — live values
-- [/about](/about) — full Quality table on the live site
+<Cards>
+  <Card href="/docs/methodology" icon={<Workflow className="text-fd-primary" />} title="Methodology" description="The pipeline that the eval grades." />
+  <Card href="/docs/themes" icon={<Tags className="text-fd-primary" />} title="Theme taxonomy" description="What classify chooses from." />
+  <Card href="/docs/testing" icon={<TerminalSquare className="text-fd-primary" />} title="Testing" description="The broader test pyramid." />
+  <Card href="/docs/adr/0008-daily-cron-eval-gate" icon={<ScrollText className="text-fd-primary" />} title="ADR-0008" description="Why the gate is daily, not per-PR." />
+  <Card href="/about" icon={<BookOpen className="text-fd-primary" />} title="/about → Quality" description="Live numbers + cost ledger on the home site." />
+  <Card href="https://github.com/imtiaj-007/ArxivDigest" icon={<GitBranch className="text-fd-primary" />} title="README badges" description="Shields.io values pulled from the latest run." />
+</Cards>

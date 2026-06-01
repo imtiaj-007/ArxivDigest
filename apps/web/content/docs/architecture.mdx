@@ -3,55 +3,52 @@ title: Architecture
 description: System design — two decoupled subsystems sharing one Postgres schema, a 6-stage LangGraph pipeline, and the DB status columns as the resume checkpoint.
 ---
 
-> **Status (V0):** This doc reflects current implementation. Tables/stages
-> noted "V1+" are aspirational extensions; everything else exists in code.
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Files, Folder, File } from "fumadocs-ui/components/files";
+import {
+  Activity,
+  Code2,
+  FileCode,
+  Lock,
+  ScrollText,
+  Sparkles,
+  TerminalSquare,
+  Workflow,
+} from "lucide-react";
+
+<Callout type="info" title="Status (V0)">
+  This doc reflects current implementation. Tables/stages tagged "V1+" are
+  aspirational extensions; everything else exists in code.
+</Callout>
 
 ## System overview
 
 ArxivDigest is **two independently deployable subsystems sharing a single
 Postgres database**:
 
-```
-                       GitHub Actions (cron)
-                       daily 07:00 UTC (delayed a few hours by GH scheduler)
-                              │
-                              ▼
-         ┌────────────────────────────────────┐
-         │   apps/agent — Python batch agent  │
-         │   - crawls arxiv (Atom API)        │
-         │   - calls Groq + local BGE         │
-         │   - writes to Supabase             │
-         │   - POSTs /api/revalidate          │
-         └────────────────┬───────────────────┘
-                          │
-                          ▼
-         ┌────────────────────────────────────┐
-         │   Supabase Postgres + pgvector     │
-         │   - papers (with embedding 1024d)  │
-         │   - digests                        │
-         │   - runs                           │
-         └────────────────┬───────────────────┘
-                          │
-                          ▼
-         ┌────────────────────────────────────┐
-         │   apps/web — Next.js 16 site       │
-         │   - SSR/ISR digest pages           │
-         │   - Fumadocs for /docs MDX         │
-         │   - shadcn (base-nova) components  │
-         └────────────────┬───────────────────┘
-                          │
-                          ▼
-                    ┌──────────┐
-                    │  Vercel  │
-                    │  (CDN)   │
-                    └──────────┘
+<Mermaid chart={`flowchart TD
+    cron[GitHub Actions cron<br/>daily 07:00 UTC]
+    agent[apps/agent<br/>Python batch agent<br/>crawl • summarize • classify<br/>embed • rank • publish]
+    db[(Supabase Postgres<br/>+ pgvector<br/>papers • digests • runs)]
+    web[apps/web<br/>Next.js 16<br/>SSR/ISR + Fumadocs]
+    vercel{{Vercel CDN}}
+    langfuse[/Langfuse · LLM traces/]
+    sentry[/Sentry · errors/]
 
-Side channels:
-  • Langfuse Cloud  — LLM call traces
-  • Sentry          — error monitoring
-  • Drizzle Studio  — local DB inspection
-  • Supabase Studio — production DB inspection
-```
+    cron --> agent
+    agent -- writes --> db
+    agent -. POST /api/revalidate .-> web
+    web -- reads --> db
+    web --> vercel
+    agent -.-> langfuse
+    agent -.-> sentry
+
+    classDef sub fill:#fafafa,stroke:#d4d4d8,color:#0a0a0a
+    classDef side fill:#f4f4f5,stroke:#a1a1aa,color:#52525b,stroke-dasharray:4 2
+    class agent,web sub
+    class langfuse,sentry side
+`} />
 
 The two subsystems share **only the database schema** as their contract. The
 agent never serves HTTP. The site never invokes the agent. They are
@@ -76,75 +73,87 @@ honour for correctness.
 
 ### LangGraph stages
 
-```
-       ┌──────────┐
-       │  START   │
-       └────┬─────┘
-            ▼
-    ┌───────────────┐
-    │   CRAWL       │ arxiv Atom API → bare paper rows
-    │               │ (INSERT … ON CONFLICT DO NOTHING)
-    └───────┬───────┘
-            ▼
-    ┌───────────────┐
-    │  SUMMARIZE    │ Groq Llama 3.3 70B + instructor →
-    │               │ {problem, approach, result, why}
-    └───────┬───────┘
-            ▼
-    ┌───────────────┐
-    │  CLASSIFY     │ Llama 3.1 8B → 1-3 themes per paper
-    │               │ post-validated against taxonomy
-    └───────┬───────┘
-            ▼
-    ┌───────────────┐
-    │  EMBED        │ Local bge-large-en-v1.5 → 1024-d
-    │               │ (pgvector HNSW + cosine ops)
-    └───────┬───────┘
-            ▼
-    ┌───────────────┐
-    │  RANK         │ novelty (pgvector mean cosine to 5 NN)
-    │               │ + impact (8B LLM) → papers.score
-    └───────┬───────┘
-            ▼
-    ┌───────────────┐
-    │  PUBLISH      │ write digests row from top-K
-    │               │ (templated summary + paper_ids)
-    └───────┬───────┘
-            ▼
-       ┌──────────┐
-       │   END    │
-       └──────────┘
+<Mermaid chart={`flowchart LR
+    start([START]) --> crawl
+    crawl[CRAWL<br/>arxiv Atom API<br/>upsert raw rows]
+    summarize[SUMMARIZE<br/>Llama 3.3 70B<br/>problem/approach/result/why]
+    classify[CLASSIFY<br/>Llama 3.1 8B<br/>1-3 themes]
+    embed[EMBED<br/>local bge-large-en-v1.5<br/>1024-d • pgvector HNSW]
+    rank[RANK<br/>novelty + 8B impact<br/>papers.score]
+    publish[PUBLISH<br/>upsert digests row<br/>from top-K]
+    crawl --> summarize --> classify --> embed --> rank --> publish --> done([END])
 
-  Each stage is idempotent on its DB status column
-  (summary IS NULL, themes IS NULL, embedding IS NULL, score IS NULL).
-  Re-running the graph after a crash re-enters every node, but each
-  only processes outstanding rows. The DB status columns ARE the
-  resume checkpoint — see ADR-0007.
+    classDef stage fill:#fafafa,stroke:#d4d4d8,color:#0a0a0a
+    class crawl,summarize,classify,embed,rank,publish stage
+`} />
 
-  Per-paper bulkhead: one failed call is logged and skipped, not fatal.
-```
+<Callout type="info" title="Resume checkpoint = DB status columns">
+  Each stage is idempotent on its DB status column (`summary IS NULL`,
+  `themes IS NULL`, `embedding IS NULL`, `score IS NULL`). Re-running the
+  graph after a crash re-enters every node, but each only processes
+  outstanding rows. **The DB status columns ARE the resume checkpoint** —
+  see [ADR-0007](/docs/adr/0007-db-status-as-resume-checkpoint). Per-paper
+  bulkhead: one failed call is logged and skipped, not fatal.
+</Callout>
 
 ### Hexagonal architecture (ports + adapters)
 
 Domain logic and infrastructure are separated:
 
-- **`domain/`** — pure business logic. No I/O. No network. Easy unit-test.
-  - Pydantic models (`RawPaper`, `PaperSummary`, `Classification`,
-    `ImpactAssessment`, `ScoredPaper`, `Run`)
-  - `ranking.blend_score` — pure novelty+impact math
-  - `themes` — 14-theme taxonomy + `normalize_themes` guard
-  - Prompts as code (`prompts/summarize.py`, `classify.py`, `rank.py`)
-- **`ports/`** — `typing.Protocol` interfaces.
-  - `LLMClient`, `Embedder`, `PaperSource`, `Repository`
-- **`adapters/`** — concrete implementations.
-  - `GroqClient`, `GeminiClient`, `MultiLLMClient` (dormant failover)
-  - `LocalBGEEmbedder` (live), `VoyageEmbedder` (dormant)
-  - `ArxivSource`
-  - `PostgresRepository`
-  - `observability/{logging, tracing, errors}`
-- **`stages/` + `graph/`** — orchestration over the ports.
+<Files>
+  <Folder name="apps/agent/src/arxivdigest" defaultOpen>
+    <Folder name="domain" defaultOpen>
+      <File name="models.py — RawPaper, PaperSummary, …" />
+      <File name="ranking.py — blend_score()" />
+      <File name="themes.py — 14-theme taxonomy + normalize_themes()" />
+      <Folder name="prompts">
+        <File name="summarize.py — VERSION + SYSTEM + build_user_prompt" />
+        <File name="classify.py" />
+        <File name="rank.py" />
+      </Folder>
+    </Folder>
+    <Folder name="ports" defaultOpen>
+      <File name="llm.py — LLMClient Protocol" />
+      <File name="embedder.py — Embedder Protocol" />
+      <File name="source.py — PaperSource Protocol" />
+      <File name="repository.py — Repository Protocol" />
+    </Folder>
+    <Folder name="adapters" defaultOpen>
+      <Folder name="llm">
+        <File name="groq_client.py — live" />
+        <File name="gemini_client.py — dormant failover" />
+        <File name="multi_llm.py — primary→fallback" />
+      </Folder>
+      <Folder name="embedder">
+        <File name="local_bge.py — live (CPU torch)" />
+        <File name="voyage.py — dormant" />
+      </Folder>
+      <File name="arxiv_source.py" />
+      <File name="db/repository.py — asyncpg" />
+      <Folder name="observability">
+        <File name="logging.py — structlog" />
+        <File name="tracing.py — Langfuse" />
+        <File name="errors.py — Sentry" />
+      </Folder>
+    </Folder>
+    <Folder name="stages">
+      <File name="crawl.py, summarize.py, classify.py, …" />
+    </Folder>
+    <Folder name="graph">
+      <File name="pipeline.py — LangGraph wiring" />
+    </Folder>
+    <Folder name="cli">
+      <File name="commands/{run,eval,label}.py" />
+    </Folder>
+    <Folder name="evals">
+      <File name="harness.py, metrics.py, ground_truth.py" />
+    </Folder>
+  </Folder>
+</Files>
 
-See [ADR-0004](/docs/adr/0004-hexagonal-architecture) for rationale.
+See [ADR-0004](/docs/adr/0004-hexagonal-architecture) for rationale. The
+2-line Voyage→BGE composition-root swap ([ADR-0006](/docs/adr/0006-local-bge-over-voyage))
+is the proof.
 
 ### Stage-by-stage detail
 
@@ -191,7 +200,43 @@ route, mobile-responsive for free.
 
 ## Database schema (Supabase Postgres + pgvector)
 
-### Current tables
+<Mermaid chart={`erDiagram
+    PAPERS {
+        uuid id PK
+        text arxiv_id UK
+        text title
+        text abstract
+        text_array authors
+        text_array categories
+        timestamptz published_at
+        vector_1024 embedding "status checkpoint"
+        text summary "status checkpoint"
+        text_array themes "status checkpoint"
+        real score "status checkpoint"
+        timestamptz created_at
+    }
+    DIGESTS {
+        uuid id PK
+        date date UK
+        text summary
+        uuid_array paper_ids
+        timestamptz created_at
+    }
+    RUNS {
+        uuid id PK
+        timestamptz started_at
+        timestamptz completed_at
+        text status
+        int papers_crawled
+        int papers_summarized
+        int papers_classified
+        int papers_embedded
+        int papers_ranked
+        int papers_published
+        text error_summary
+    }
+    DIGESTS ||..o{ PAPERS : "paper_ids[]"
+`} />
 
 ```sql
 papers (
@@ -216,34 +261,10 @@ papers (
 create unique index papers_arxiv_id_idx on papers (arxiv_id);
 create index papers_published_at_idx on papers (published_at desc);
 create index papers_embedding_idx on papers using hnsw (embedding vector_cosine_ops);
-
-digests (
-  id           uuid pk default gen_random_uuid(),
-  date         date unique not null,
-  summary      text not null,         -- templated
-  paper_ids    uuid[] not null default '{}',
-  created_at   timestamptz not null default now()
-);
-
-runs (
-  id                  uuid pk default gen_random_uuid(),
-  started_at          timestamptz not null default now(),
-  completed_at        timestamptz,
-  status              text not null,     -- 'running' | 'completed' | 'failed'
-  papers_crawled      integer not null default 0,
-  papers_summarized   integer not null default 0,
-  papers_classified   integer not null default 0,
-  papers_embedded     integer not null default 0,
-  papers_ranked       integer not null default 0,
-  papers_published    integer not null default 0,
-  error_summary       text
-);
-
-create index runs_started_at_idx on runs (started_at desc);
 ```
 
-The full Drizzle schema lives at `packages/db/src/schema.ts`. Migrations
-in `packages/db/drizzle/`.
+Full Drizzle schema at `packages/db/src/schema.ts`. Migrations in
+`packages/db/drizzle/`.
 
 ### V1+ tables (not yet)
 
@@ -272,25 +293,32 @@ SQL embedded in `adapters/db/repository.py`.
 
 ## Data flow — typical day
 
-```
-~07:00 UTC  GH Actions cron fires (often delayed 1-3h by GH's free-tier scheduler)
-~07:00      Workflow checks out repo, uv sync (cached), HF model cache restored
-~07:00      arxivdigest run --daily starts
-              ├── start_run() → INSERT INTO runs (status='running')
-              ├── crawl: fetch 100 newest from arxiv → upsert raw rows
-              ├── summarize: 8B+70B paced → update summary
-              ├── classify: 8B paced → update themes
-              ├── embed: local BGE on CPU → update embedding (~30-50s for 50)
-              ├── rank: per-paper novelty (pgvector) + impact (8B) → update score
-              ├── publish: top-K → upsert into digests
-              └── complete_run(run_id, **counts)
-~07:08-25   POST /api/revalidate → site busts ISR caches → /papers shows today's digest
-~07:08-25   Eval regression gate (re-classify ground truth) → fail workflow if F1 drops
-~07:10-30   Cron exits; site is live with today's data
-```
+<Mermaid chart={`sequenceDiagram
+    participant GH as GH Actions cron
+    participant A as Agent
+    participant DB as Supabase
+    participant W as Web (Vercel)
+    participant E as Eval gate
+
+    Note over GH: ~07:00 UTC (often delayed 1-3h)
+    GH->>A: arxivdigest run --daily
+    A->>DB: start_run (status=running)
+    A->>A: crawl → 100 newest from arxiv
+    A->>DB: upsert raw rows
+    A->>A: summarize / classify / embed / rank
+    A->>DB: write summary, themes, embedding, score
+    A->>DB: publish — upsert digests row
+    A->>DB: complete_run (per-stage counts)
+    A->>W: POST /api/revalidate
+    W->>W: bust ISR caches → /papers fresh
+    GH->>E: arxivdigest eval --fail-on-regression
+    E->>DB: read papers + classify ground truth
+    E-->>GH: exit 0 (green) or 1 (red)
+`} />
 
 End-to-end: ~3-20 minutes depending on whether new papers arrived (Sun/Mon
-are quiet; Tue-Fri are busy). Comfortably within GH Actions free tier budget.
+are quiet; Tue-Fri are busy). Comfortably within GH Actions free-tier
+budget.
 
 ## Per-paper lineage
 
@@ -333,10 +361,13 @@ Current scale is comfortable on free tiers. See
 
 ## Cross-references
 
-- [Stack](/docs/stack) — every layer's pick with rationale
-- [Methodology](/docs/methodology) — the same pipeline at prompt + model granularity
-- [Prompts](/docs/prompts) — how the LLM calls are shaped + validated
-- [Testing + Evals](/docs/testing) — how the pipeline is gated against regression
-- [Observability](/docs/observability) — logs, traces, errors, run history
-- [Security](/docs/security) — secrets, RLS, hardening
-- [ADRs](/docs/adr) — every significant decision in depth
+<Cards>
+  <Card href="/docs/stack" icon={<Code2 className="text-fd-primary" />} title="Stack" description="Every layer's pick with rationale." />
+  <Card href="/docs/methodology" icon={<Workflow className="text-fd-primary" />} title="Methodology" description="Same pipeline at prompt + model granularity." />
+  <Card href="/docs/prompts" icon={<FileCode className="text-fd-primary" />} title="Prompts" description="How the LLM calls are shaped + validated." />
+  <Card href="/docs/testing" icon={<TerminalSquare className="text-fd-primary" />} title="Testing" description="Test pyramid + lint/typecheck/build gates." />
+  <Card href="/docs/evals" icon={<Sparkles className="text-fd-primary" />} title="Evals" description="How the pipeline is gated against quality regression." />
+  <Card href="/docs/observability" icon={<Activity className="text-fd-primary" />} title="Observability" description="Logs, traces, errors, run history." />
+  <Card href="/docs/security" icon={<Lock className="text-fd-primary" />} title="Security" description="Secrets, RLS, hardening." />
+  <Card href="/docs/adr" icon={<ScrollText className="text-fd-primary" />} title="ADRs" description="Every significant decision in depth." />
+</Cards>

@@ -3,10 +3,17 @@ title: Security Posture
 description: Threat model + defense-in-depth design for ArxivDigest. Narrow surface (no PII, no auth, no payments) — but every layer has explicit defenses anyway.
 ---
 
-> **Status (V0):** This doc describes the intended security posture across V0
-> and V1. The two-key Supabase model, RLS, secrets hygiene, prompt-injection
-> framing, and `bandit` are all live. CSP headers, gitleaks/trivy in CI,
-> Renovate, and `SecretStr` adoption are tracked as V1 improvements.
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+import { Activity, Code2, Layers } from "lucide-react";
+
+<Callout type="info" title="Status (V0)">
+  This doc describes the intended security posture across V0 and V1. The
+  two-key Supabase model, RLS, secrets hygiene, prompt-injection framing,
+  and `bandit` are all live. CSP headers, gitleaks/trivy in CI, Renovate,
+  and `SecretStr` adoption are tracked as V1 improvements.
+</Callout>
 
 ## Threat model
 
@@ -192,21 +199,52 @@ If V2 adds user accounts → revisit:
 
 ### Response playbook: key leak
 
-If a secret is committed:
-
-1. **Rotate the key immediately** (Groq / Gemini / Voyage / Supabase / Sentry / Langfuse dashboards)
-2. **Force-push removal of the secret from git history** (`git filter-repo`)
-3. **Update GH Actions / Vercel / `.env` with new key**
-4. **Verify pre-commit hook is active** for everyone with push access
-5. **Document the incident** in `docs/incidents/YYYY-MM-DD-<short-desc>.md`
-6. **Add a regression test** if a tooling gap let the leak through
+<Steps>
+  <Step>
+    **Rotate the key immediately** — Groq, Gemini, Voyage, Supabase,
+    Sentry, Langfuse dashboards. Don't wait for git history cleanup.
+  </Step>
+  <Step>
+    **Force-push removal of the secret from git history** with
+    `git filter-repo` (never use `git filter-branch`).
+  </Step>
+  <Step>
+    **Update GH Actions / Vercel / `.env`** with the new key everywhere
+    it's consumed.
+  </Step>
+  <Step>
+    **Verify pre-commit hooks are active** for everyone with push access
+    so the same vector doesn't repeat.
+  </Step>
+  <Step>
+    **Document the incident** in `docs/incidents/YYYY-MM-DD-<short-desc>.md`
+    with timeline, root cause, and remediation.
+  </Step>
+  <Step>
+    **Add a regression test** if a tooling gap let the leak through —
+    e.g. a gitleaks pattern or a `.gitignore` entry.
+  </Step>
+</Steps>
 
 ### Response playbook: vulnerable dependency
 
-1. **Assess exploitability** in our context — most CVEs don't apply to batch jobs
-2. **If exploitable**: prioritize fix; pin to patched version
-3. **If not exploitable but high CVSS**: schedule update in next dependency-update window
-4. **Document the assessment** in `docs/security/cve-assessments/CVE-YYYY-NNNN.md`
+<Steps>
+  <Step>
+    **Assess exploitability** in our context — most CVEs don't apply to
+    batch jobs.
+  </Step>
+  <Step>
+    **If exploitable**: prioritize fix; pin to patched version; deploy.
+  </Step>
+  <Step>
+    **If not exploitable but high CVSS**: schedule update in the next
+    dependency-update window.
+  </Step>
+  <Step>
+    **Document the assessment** in `docs/security/cve-assessments/CVE-YYYY-NNNN.md`
+    so re-triage doesn't repeat the analysis.
+  </Step>
+</Steps>
 
 ## Security review cadence
 
@@ -223,6 +261,8 @@ If a secret is committed:
 
 ## Cross-references
 
-- [Architecture](/docs/architecture) — RLS schema design
-- [Observability](/docs/observability) — what we log (and don't)
-- [Stack](/docs/stack) — tooling choices
+<Cards>
+  <Card href="/docs/architecture" icon={<Layers className="text-fd-primary" />} title="Architecture" description="RLS in context of the schema." />
+  <Card href="/docs/observability" icon={<Activity className="text-fd-primary" />} title="Observability" description="What we log (and what we don't)." />
+  <Card href="/docs/stack" icon={<Code2 className="text-fd-primary" />} title="Stack" description="Tooling choices behind each defense." />
+</Cards>

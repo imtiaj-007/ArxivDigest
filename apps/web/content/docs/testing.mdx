@@ -3,11 +3,16 @@ title: Testing + Evals
 description: Test pyramid plus a separate eval harness for AI output quality. Both gated in CI; eval-regression gate runs on every daily cron.
 ---
 
-> **Status (V0):** A small unit-test suite + a 4-phase eval harness with a
-> CI regression gate are live (see [/docs/evals](/docs/evals) for the harness
-> details). Integration tests with VCR, property tests with hypothesis,
-> Playwright site snapshots, and coverage gates are V1+ — the target test
-> pyramid is described below for context.
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Layers, ScrollText, ShieldCheck, Sparkles } from "lucide-react";
+
+<Callout type="info" title="Status (V0)">
+  A small unit-test suite + a 4-phase eval harness with a CI regression
+  gate are live (see [/docs/evals](/docs/evals)). Integration tests with
+  VCR, property tests with hypothesis, Playwright site snapshots, and
+  coverage gates are V1+ — the target pyramid is described below for context.
+</Callout>
 
 ## Philosophy
 
@@ -192,9 +197,10 @@ V1+ planned CI additions:
 
 ## Cross-references
 
-- [/docs/evals](/docs/evals) — the eval harness in detail
-- [Prompts](/docs/prompts) — how prompt changes get eval-gated
-- [Observability](/docs/observability) — eval drift surfaces here too
-- [ADR-0004 — hexagonal architecture](/docs/adr/0004-hexagonal-architecture)
-  — why this architecture is easy to test
-- [ADR-0008 — daily-cron eval gate](/docs/adr/0008-daily-cron-eval-gate)
+<Cards>
+  <Card href="/docs/evals" icon={<Sparkles className="text-fd-primary" />} title="Eval harness" description="Multi-label F1 + schema + keyword coverage in detail." />
+  <Card href="/docs/prompts" icon={<ShieldCheck className="text-fd-primary" />} title="Prompts" description="How prompt changes get eval-gated." />
+  <Card href="/docs/observability" icon={<Layers className="text-fd-primary" />} title="Observability" description="Where eval drift surfaces in production." />
+  <Card href="/docs/adr/0004-hexagonal-architecture" icon={<ScrollText className="text-fd-primary" />} title="ADR-0004" description="Why this architecture is easy to test." />
+  <Card href="/docs/adr/0008-daily-cron-eval-gate" icon={<ScrollText className="text-fd-primary" />} title="ADR-0008" description="Daily-cron eval gate, not per-PR." />
+</Cards>

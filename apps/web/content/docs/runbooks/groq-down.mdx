@@ -3,8 +3,14 @@ title: Groq down or rate-limiting hard
 description: Symptoms, triage, mitigations and recovery checks when the daily cron starts failing on Groq calls.
 ---
 
-When the daily cron starts failing on Groq calls — `RateLimitError` loops,
-`APIStatusError` 5xx, or just dead silence — this is the first place to look.
+import { Callout } from "fumadocs-ui/components/callout";
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+<Callout type="warn" title="When to reach for this runbook">
+  `daily-digest` is red. Logs show repeating `RateLimitError`, `APIStatusError`
+  5xx, or `summarize.paper_failed` / `rank.paper_failed`. `/status` shows
+  today's square red; `/papers` is stale.
+</Callout>
 
 ## Symptoms
 
@@ -15,50 +21,85 @@ When the daily cron starts failing on Groq calls — `RateLimitError` loops,
 
 ## Quick triage (~2 min)
 
-1. **Check Groq's status page** — [groqstatus.com](https://groqstatus.com/)
-2. **Read the latest run's log:**
-   ```sh
-   gh run view --workflow daily-digest.yml --log | tail -150
-   ```
-3. **Classify the error:**
-   - `429 RateLimitError` repeating → TPM exhaustion (most common; usually
-     local-account-burn or unusually long abstracts).
-   - `5xx` or connection timeouts → Groq-side outage.
-   - `400` with model name → the model was retired or renamed; update
-     `DEFAULT_HEAVY_MODEL` / `DEFAULT_FAST_MODEL` in
-     `apps/agent/src/arxivdigest/adapters/llm/groq.py`.
+<Steps>
+  <Step>
+    **Check Groq's status page** — [groqstatus.com](https://groqstatus.com/).
+    Outage banner = mitigation path A. Otherwise it's local.
+  </Step>
+  <Step>
+    **Read the latest run's log:**
+
+    ```sh
+    gh run view --workflow daily-digest.yml --log | tail -150
+    ```
+  </Step>
+  <Step>
+    **Classify the error:**
+
+    - `429 RateLimitError` repeating → TPM exhaustion (most common;
+      usually local-account-burn or unusually long abstracts).
+    - `5xx` or connection timeouts → Groq-side outage.
+    - `400` with model name → the model was retired or renamed; update
+      `DEFAULT_HEAVY_MODEL` / `DEFAULT_FAST_MODEL` in
+      `apps/agent/src/arxivdigest/adapters/llm/groq.py`.
+  </Step>
+</Steps>
 
 ## Mitigations
 
-### Groq is down (5xx, timeouts)
+### A. Groq is down (5xx, timeouts)
+
+<Callout type="info" title="Default action: wait it out">
+  Every stage is idempotent. Papers with `summary IS NULL` (or
+  `themes IS NULL`, etc.) get retried on the next cron. One missed day
+  doesn't break anything downstream — see
+  [ADR-0007](/docs/adr/0007-db-status-as-resume-checkpoint).
+</Callout>
 
 The `MultiLLMClient` wrapper exists for exactly this case, but Gemini's
 free tier is currently exhausted, so failover is effectively a no-op (see
 [ADR-0006](/docs/adr/0006-local-bge-over-voyage) for the free-tier context).
 
-- **Wait it out.** Every stage is idempotent: paper rows with `summary IS NULL`
-  (or `themes IS NULL`, etc.) get retried on the next cron. One missed day
-  doesn't break anything downstream.
-- **Activate Gemini failover if urgent.** Set `GEMINI_API_KEY` in the
-  GH `production` env. The agent constructs `MultiLLMClient(primary=Groq,
-  fallback=Gemini)` whenever the key is present; on the next run, any Groq
-  failure routes to Gemini automatically.
+**To activate Gemini failover if urgent:**
 
-### Groq is rate-limiting (persistent 429)
+<Steps>
+  <Step>Generate a fresh Gemini API key with paid billing enabled.</Step>
+  <Step>
+    Set `GEMINI_API_KEY` in the GH `production` env (Settings →
+    Environments → production → Secrets).
+  </Step>
+  <Step>
+    The agent constructs `MultiLLMClient(primary=Groq, fallback=Gemini)`
+    whenever the key is present; on the next run, any Groq failure routes
+    to Gemini automatically. No code change needed.
+  </Step>
+</Steps>
 
-In steady state the per-model `AsyncLimiter` token bucket (15 req/min on 70B,
-25 req/min on 8B) should keep us under the cap. If 429s still escape:
+### B. Groq is rate-limiting (persistent 429)
 
-1. **Reduce the rates** in `apps/agent/src/arxivdigest/adapters/llm/groq.py`
-   (`_HEAVY_RPM`, `_FAST_RPM`) and re-deploy.
-2. **Wait for the daily quota to reset.** Free-tier 70B is 6000 req/day; 8B
-   is 14400 req/day. The cron uses ~50 + ~100 = 150 calls/day, well under —
-   so if you're hitting the daily cap, something's wrong (concurrent runs?).
-3. **Inspect the actual quota error** — the message includes both the metric
-   (`requests_per_min` vs `tokens_per_min` vs `requests_per_day`) and the
-   limit value.
+In steady state the per-model `AsyncLimiter` token bucket (15 req/min on
+70B, 25 req/min on 8B) keeps us under the cap. If 429s still escape:
 
-### Re-running
+<Steps>
+  <Step>
+    **Reduce the rates** in
+    `apps/agent/src/arxivdigest/adapters/llm/groq.py` (`_HEAVY_RPM`,
+    `_FAST_RPM`) and re-deploy.
+  </Step>
+  <Step>
+    **Wait for the daily quota to reset.** Free-tier 70B is 6000 req/day;
+    8B is 14400 req/day. The cron uses ~50 + ~100 = 150 calls/day, well
+    under — so if you're hitting the daily cap, something's wrong
+    (concurrent runs?).
+  </Step>
+  <Step>
+    **Inspect the actual quota error** — the message includes both the
+    metric (`requests_per_min` vs `tokens_per_min` vs `requests_per_day`)
+    and the limit value.
+  </Step>
+</Steps>
+
+### Re-running after mitigation
 
 ```sh
 gh workflow run daily-digest.yml
@@ -67,28 +108,38 @@ gh run watch
 
 ## Recovery checks
 
-- **Workflow:** `gh run list --workflow daily-digest.yml --limit 3` — top
-  entry should be green.
-- **Database state:**
-  ```sh
-  cd apps/agent && uv run python -c "
-  import asyncio
-  from arxivdigest.config import get_settings
-  from arxivdigest.adapters.db.postgres import pool_lifespan
-  async def main():
-      s = get_settings()
-      async with pool_lifespan(s.database_url) as pool, pool.acquire() as conn:
-          for q in ['summary IS NULL', 'themes IS NULL', 'embedding IS NULL', 'score IS NULL']:
-              n = await conn.fetchval(f'SELECT count(*) FROM papers WHERE {q}')
-              print(f'  {q}: {n}')
-          d = await conn.fetchrow('SELECT date, array_length(paper_ids,1) AS n FROM digests ORDER BY date DESC LIMIT 1')
-          print(f'  latest digest: {d}')
-  asyncio.run(main())
-  "
-  ```
-  All four counts should be 0; latest digest date should be today (UTC).
-- **Site:** `/status` shows a fresh green square; `/papers` ranks today's
-  papers at the top.
+<Steps>
+  <Step>
+    **Workflow green:** `gh run list --workflow daily-digest.yml --limit 3`
+    — top entry should be ✓.
+  </Step>
+  <Step>
+    **Database state — every status column drained:**
+
+    ```sh
+    cd apps/agent && uv run python -c "
+    import asyncio
+    from arxivdigest.config import get_settings
+    from arxivdigest.adapters.db.postgres import pool_lifespan
+    async def main():
+        s = get_settings()
+        async with pool_lifespan(s.database_url) as pool, pool.acquire() as conn:
+            for q in ['summary IS NULL', 'themes IS NULL', 'embedding IS NULL', 'score IS NULL']:
+                n = await conn.fetchval(f'SELECT count(*) FROM papers WHERE {q}')
+                print(f'  {q}: {n}')
+            d = await conn.fetchrow('SELECT date, array_length(paper_ids,1) AS n FROM digests ORDER BY date DESC LIMIT 1')
+            print(f'  latest digest: {d}')
+    asyncio.run(main())
+    "
+    ```
+
+    All four counts should be `0`; latest digest date should be today (UTC).
+  </Step>
+  <Step>
+    **Site:** `/status` shows a fresh green square; `/papers` ranks
+    today's papers at the top.
+  </Step>
+</Steps>
 
 ## Background
 
@@ -99,6 +150,6 @@ gh run watch
 - **Failover dormancy:** Re-enabling Gemini is one workflow line —
   `GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}` in `daily-digest.yml`.
   Code is already wired.
-- **Bulkhead behavior:** Per-paper failures are logged and skipped, not fatal.
-  Even with Groq half-broken, the run still records a `runs` row and the
-  successful papers ship in today's digest.
+- **Bulkhead behavior:** Per-paper failures are logged and skipped, not
+  fatal. Even with Groq half-broken, the run still records a `runs` row
+  and the successful papers ship in today's digest.

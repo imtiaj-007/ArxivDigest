@@ -3,6 +3,15 @@ title: Tech Stack
 description: Every layer of ArxivDigest's stack with the rationale for the pick and the alternatives that were rejected. $0/month on free tiers.
 ---
 
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Layers, ScrollText } from "lucide-react";
+
+<Callout type="success" title="Total monthly cost: $0">
+  Every layer below stays inside a free tier, with 2–100× headroom at
+  current usage. Migration triggers + escape routes are at the bottom.
+</Callout>
+
 ## At a glance
 
 | Layer | Pick | Free tier | Why |
@@ -185,5 +194,7 @@ Even at 5× current growth, all services stay within free tiers.
 
 ## Cross-references
 
-- [Architecture](/docs/architecture) — how the stack pieces fit
-- [ADRs](/docs/adr) — every significant decision in detail
+<Cards>
+  <Card href="/docs/architecture" icon={<Layers className="text-fd-primary" />} title="Architecture" description="How the stack pieces fit together." />
+  <Card href="/docs/adr" icon={<ScrollText className="text-fd-primary" />} title="ADRs" description="Every significant decision in detail." />
+</Cards>
