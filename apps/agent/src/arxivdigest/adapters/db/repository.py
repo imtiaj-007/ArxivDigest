@@ -136,6 +136,12 @@ FROM papers
 WHERE arxiv_id = ANY($1)
 """
 
+_FETCH_SUMMARY_MAP = """
+SELECT arxiv_id, summary
+FROM papers
+WHERE arxiv_id = ANY($1)
+"""
+
 _FETCH_UNRANKED = """
 SELECT arxiv_id, title, abstract, authors, categories, published_at
 FROM papers
@@ -349,6 +355,13 @@ class PostgresRepository:
             )
             for r in rows
         ]
+
+    async def fetch_summary_map(self, arxiv_ids: Sequence[str]) -> dict[str, str | None]:
+        if not arxiv_ids:
+            return {}
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(_FETCH_SUMMARY_MAP, list(arxiv_ids))
+        return {r["arxiv_id"]: r["summary"] for r in rows}
 
     async def update_themes(self, themes: Sequence[tuple[str, list[str]]]) -> int:
         if not themes:

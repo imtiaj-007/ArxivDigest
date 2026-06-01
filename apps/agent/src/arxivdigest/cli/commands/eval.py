@@ -27,6 +27,7 @@ log = structlog.get_logger()
 # apps/agent/src/arxivdigest/cli/commands/eval.py → repo root is parents[6]
 _REPO_ROOT = Path(__file__).resolve().parents[6]
 DEFAULT_REPORT_PATH = _REPO_ROOT / "evals" / "last_report.json"
+HISTORY_PATH = _REPO_ROOT / "evals" / "metrics" / "history.jsonl"
 
 
 async def _run(
@@ -66,5 +67,23 @@ def eval_cmd(
         report = asyncio.run(_run(ground_truth, limit, git_sha))
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report.model_dump(mode="json"), indent=2) + "\n")
+    _append_history(report)
     typer.echo(report.summary())
     typer.echo(f"report written to {output}")
+
+
+def _append_history(report: EvalReport) -> None:
+    """Append a compact one-line summary of this run for trend tracking."""
+    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    line = {
+        "timestamp": report.timestamp.isoformat(),
+        "git_sha": report.git_sha,
+        "processed": report.processed,
+        "total": report.total,
+        "schema_validity_rate": round(report.schema_validity_rate, 4),
+        "micro_f1": round(report.classification["micro_f1"], 4),
+        "macro_f1": round(report.classification["macro_f1"], 4),
+        "avg_keyword_coverage": round(report.avg_keyword_coverage, 4),
+    }
+    with HISTORY_PATH.open("a") as f:
+        f.write(json.dumps(line) + "\n")

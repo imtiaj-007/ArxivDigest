@@ -74,6 +74,19 @@ def multilabel_classification_metrics(
     }
 
 
+def keyword_coverage(summary_text: str, expected_keywords: Sequence[str]) -> float:
+    """Fraction of expected keywords present (case-insensitive substring) in the summary."""
+    if not expected_keywords:
+        return 1.0
+    haystack = summary_text.lower()
+    hits = sum(1 for kw in expected_keywords if kw.lower() in haystack)
+    return hits / len(expected_keywords)
+
+
+def average(values: Sequence[float]) -> float:
+    return _safe_div(sum(values), len(values))
+
+
 def per_theme_f1(
     predicted: Sequence[set[str]], expected: Sequence[set[str]]
 ) -> dict[str, float]:

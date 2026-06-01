@@ -1,34 +1,35 @@
 {
-  "timestamp": "2026-06-01T09:47:31.963659Z",
+  "timestamp": "2026-06-01T10:06:36.466819Z",
   "git_sha": null,
   "host": "Apples-MacBook-Pro-2.local",
   "total": 95,
   "processed": 95,
   "schema_validity_rate": 1.0,
   "classification": {
-    "micro_precision": 0.9049295774647887,
-    "micro_recall": 0.9145907473309609,
-    "micro_f1": 0.9097345132743363,
-    "macro_precision": 0.9286886685934602,
-    "macro_recall": 0.9302024943487562,
-    "macro_f1": 0.9291340758836356
+    "micro_precision": 0.8692579505300353,
+    "micro_recall": 0.8754448398576512,
+    "micro_f1": 0.8723404255319148,
+    "macro_precision": 0.8862092272806559,
+    "macro_recall": 0.8971940201810167,
+    "macro_f1": 0.8895987831963008
   },
   "per_theme_f1": {
-    "safety": 0.875,
+    "vision": 0.923076923076923,
+    "reasoning": 0.8780487804878048,
     "robotics": 1.0,
-    "rl": 1.0,
-    "efficiency": 0.8478260869565217,
-    "vision": 0.9142857142857143,
-    "data": 0.8695652173913043,
-    "theory": 0.8955223880597014,
-    "multimodal": 1.0,
-    "other": 0.8461538461538461,
-    "agents": 1.0,
-    "reasoning": 0.9285714285714286,
-    "llm": 0.9642857142857143,
+    "rl": 0.8888888888888888,
+    "safety": 0.7777777777777777,
+    "llm": 0.9491525423728815,
+    "efficiency": 0.776470588235294,
+    "multimodal": 0.9714285714285714,
     "retrieval": 0.8666666666666667,
-    "speech": 1.0
+    "agents": 0.9166666666666666,
+    "speech": 1.0,
+    "other": 0.7692307692307693,
+    "data": 0.9428571428571428,
+    "theory": 0.7941176470588235
   },
+  "avg_keyword_coverage": 0.7008270676691729,
   "papers": [
     {
       "arxiv_id": "2605.31603",
@@ -39,9 +40,10 @@
       ],
       "predicted_themes": [
         "vision",
-        "multimodal",
-        "efficiency"
+        "efficiency",
+        "reasoning"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -53,9 +55,9 @@
       ],
       "predicted_themes": [
         "theory",
-        "vision",
-        "efficiency"
+        "vision"
       ],
+      "keyword_coverage": 0.5,
       "success": true,
       "error": null
     },
@@ -71,6 +73,7 @@
         "efficiency",
         "agents"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -86,6 +89,7 @@
         "agents",
         "efficiency"
       ],
+      "keyword_coverage": 0.6666666666666666,
       "success": true,
       "error": null
     },
@@ -101,6 +105,7 @@
         "multimodal",
         "efficiency"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -116,6 +121,7 @@
         "reasoning",
         "data"
       ],
+      "keyword_coverage": 0.5,
       "success": true,
       "error": null
     },
@@ -127,10 +133,11 @@
         "efficiency"
       ],
       "predicted_themes": [
+        "llm",
         "reasoning",
-        "rl",
-        "efficiency"
+        "rl"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -146,6 +153,7 @@
         "reasoning",
         "theory"
       ],
+      "keyword_coverage": 0.5,
       "success": true,
       "error": null
     },
@@ -159,8 +167,9 @@
       "predicted_themes": [
         "multimodal",
         "retrieval",
-        "theory"
+        "vision"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -176,6 +185,7 @@
         "efficiency",
         "data"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -189,8 +199,9 @@
       "predicted_themes": [
         "vision",
         "multimodal",
-        "retrieval"
+        "reasoning"
       ],
+      "keyword_coverage": 0.42857142857142855,
       "success": true,
       "error": null
     },
@@ -202,10 +213,11 @@
         "other"
       ],
       "predicted_themes": [
+        "other",
         "theory",
-        "efficiency",
-        "other"
+        "data"
       ],
+      "keyword_coverage": 0.3333333333333333,
       "success": true,
       "error": null
     },
@@ -221,6 +233,7 @@
         "data",
         "other"
       ],
+      "keyword_coverage": 0.6,
       "success": true,
       "error": null
     },
@@ -236,6 +249,7 @@
         "llm",
         "safety"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -251,6 +265,7 @@
         "reasoning",
         "theory"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -266,6 +281,7 @@
         "theory",
         "efficiency"
       ],
+      "keyword_coverage": 0.6666666666666666,
       "success": true,
       "error": null
     },
@@ -281,6 +297,7 @@
         "vision",
         "safety"
       ],
+      "keyword_coverage": 0.8,
       "success": true,
       "error": null
     },
@@ -296,6 +313,7 @@
         "reasoning",
         "data"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -311,6 +329,7 @@
         "reasoning",
         "efficiency"
       ],
+      "keyword_coverage": 0.6,
       "success": true,
       "error": null
     },
@@ -323,9 +342,10 @@
       ],
       "predicted_themes": [
         "rl",
-        "agents",
-        "efficiency"
+        "safety",
+        "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -341,6 +361,7 @@
         "data",
         "other"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -356,6 +377,7 @@
         "efficiency",
         "other"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -369,8 +391,9 @@
       "predicted_themes": [
         "vision",
         "efficiency",
-        "other"
+        "theory"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -386,6 +409,7 @@
         "data",
         "other"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -399,8 +423,9 @@
       "predicted_themes": [
         "data",
         "theory",
-        "efficiency"
+        "other"
       ],
+      "keyword_coverage": 1.0,
       "success": true,
       "error": null
     },
@@ -416,6 +441,7 @@
         "multimodal",
         "efficiency"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -428,9 +454,10 @@
       ],
       "predicted_themes": [
         "reasoning",
-        "data",
-        "efficiency"
+        "efficiency",
+        "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -446,6 +473,7 @@
         "efficiency",
         "vision"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -460,6 +488,7 @@
         "theory",
         "safety"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -474,6 +503,7 @@
         "retrieval",
         "efficiency"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -487,8 +517,9 @@
       "predicted_themes": [
         "rl",
         "agents",
-        "reasoning"
+        "efficiency"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -501,9 +532,10 @@
       ],
       "predicted_themes": [
         "retrieval",
-        "reasoning",
-        "data"
+        "data",
+        "safety"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -519,6 +551,7 @@
         "theory",
         "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -531,9 +564,10 @@
       ],
       "predicted_themes": [
         "multimodal",
-        "reasoning",
+        "vision",
         "theory"
       ],
+      "keyword_coverage": 1.0,
       "success": true,
       "error": null
     },
@@ -549,6 +583,7 @@
         "theory",
         "vision"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -560,10 +595,11 @@
         "theory"
       ],
       "predicted_themes": [
+        "llm",
         "efficiency",
-        "retrieval",
-        "theory"
+        "retrieval"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -579,6 +615,7 @@
         "efficiency",
         "reasoning"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -594,6 +631,7 @@
         "reasoning",
         "efficiency"
       ],
+      "keyword_coverage": 0.6666666666666666,
       "success": true,
       "error": null
     },
@@ -609,6 +647,7 @@
         "reasoning",
         "rl"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -624,6 +663,7 @@
         "vision",
         "other"
       ],
+      "keyword_coverage": 1.0,
       "success": true,
       "error": null
     },
@@ -637,8 +677,9 @@
       "predicted_themes": [
         "efficiency",
         "llm",
-        "reasoning"
+        "theory"
       ],
+      "keyword_coverage": 0.6,
       "success": true,
       "error": null
     },
@@ -654,6 +695,7 @@
         "reasoning",
         "data"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -666,9 +708,10 @@
       ],
       "predicted_themes": [
         "reasoning",
-        "theory",
-        "other"
+        "llm",
+        "theory"
       ],
+      "keyword_coverage": 0.2857142857142857,
       "success": true,
       "error": null
     },
@@ -684,6 +727,7 @@
         "efficiency",
         "data"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -699,6 +743,7 @@
         "data",
         "efficiency"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -714,6 +759,7 @@
         "retrieval",
         "efficiency"
       ],
+      "keyword_coverage": 0.75,
       "success": true,
       "error": null
     },
@@ -729,6 +775,7 @@
         "efficiency",
         "theory"
       ],
+      "keyword_coverage": 0.8,
       "success": true,
       "error": null
     },
@@ -740,10 +787,11 @@
         "llm"
       ],
       "predicted_themes": [
-        "agents",
         "efficiency",
+        "agents",
         "llm"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -759,6 +807,7 @@
         "reasoning",
         "efficiency"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -774,6 +823,7 @@
         "vision",
         "other"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -789,6 +839,7 @@
         "robotics",
         "reasoning"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -804,6 +855,7 @@
         "reasoning",
         "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -819,6 +871,7 @@
         "retrieval",
         "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -834,6 +887,7 @@
         "multimodal",
         "reasoning"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -849,6 +903,7 @@
         "efficiency",
         "llm"
       ],
+      "keyword_coverage": 0.75,
       "success": true,
       "error": null
     },
@@ -860,10 +915,11 @@
         "efficiency"
       ],
       "predicted_themes": [
-        "data",
         "vision",
+        "data",
         "other"
       ],
+      "keyword_coverage": 0.8,
       "success": true,
       "error": null
     },
@@ -879,6 +935,7 @@
         "llm",
         "retrieval"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -891,9 +948,10 @@
       ],
       "predicted_themes": [
         "efficiency",
-        "rl",
-        "data"
+        "data",
+        "theory"
       ],
+      "keyword_coverage": 0.6666666666666666,
       "success": true,
       "error": null
     },
@@ -905,10 +963,11 @@
         "theory"
       ],
       "predicted_themes": [
-        "reasoning",
         "agents",
-        "efficiency"
+        "reasoning",
+        "other"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -920,10 +979,11 @@
         "data"
       ],
       "predicted_themes": [
+        "efficiency",
         "llm",
-        "data",
-        "efficiency"
+        "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -939,6 +999,7 @@
         "theory",
         "data"
       ],
+      "keyword_coverage": 0.6,
       "success": true,
       "error": null
     },
@@ -951,9 +1012,10 @@
       ],
       "predicted_themes": [
         "agents",
-        "efficiency",
+        "data",
         "theory"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -969,6 +1031,7 @@
         "efficiency",
         "theory"
       ],
+      "keyword_coverage": 0.8333333333333334,
       "success": true,
       "error": null
     },
@@ -984,6 +1047,7 @@
         "robotics",
         "agents"
       ],
+      "keyword_coverage": 0.6666666666666666,
       "success": true,
       "error": null
     },
@@ -997,8 +1061,9 @@
       "predicted_themes": [
         "rl",
         "safety",
-        "efficiency"
+        "theory"
       ],
+      "keyword_coverage": 0.8,
       "success": true,
       "error": null
     },
@@ -1012,8 +1077,9 @@
       "predicted_themes": [
         "theory",
         "data",
-        "reasoning"
+        "efficiency"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -1027,8 +1093,9 @@
       "predicted_themes": [
         "vision",
         "multimodal",
-        "other"
+        "theory"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1044,6 +1111,7 @@
         "theory",
         "efficiency"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1057,8 +1125,9 @@
       "predicted_themes": [
         "multimodal",
         "vision",
-        "theory"
+        "other"
       ],
+      "keyword_coverage": 0.8333333333333334,
       "success": true,
       "error": null
     },
@@ -1074,6 +1143,7 @@
         "multimodal",
         "theory"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -1085,10 +1155,11 @@
         "llm"
       ],
       "predicted_themes": [
-        "data",
         "reasoning",
+        "data",
         "efficiency"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -1104,6 +1175,7 @@
         "data",
         "reasoning"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1116,9 +1188,10 @@
       ],
       "predicted_themes": [
         "reasoning",
-        "rl",
-        "efficiency"
+        "efficiency",
+        "rl"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -1134,6 +1207,7 @@
         "reasoning",
         "data"
       ],
+      "keyword_coverage": 0.5,
       "success": true,
       "error": null
     },
@@ -1149,6 +1223,7 @@
         "efficiency",
         "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1164,6 +1239,7 @@
         "reasoning",
         "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1175,10 +1251,11 @@
         "theory"
       ],
       "predicted_themes": [
+        "retrieval",
         "multimodal",
-        "data",
-        "theory"
+        "data"
       ],
+      "keyword_coverage": 0.8333333333333334,
       "success": true,
       "error": null
     },
@@ -1194,6 +1271,7 @@
         "robotics",
         "reasoning"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1206,9 +1284,10 @@
       ],
       "predicted_themes": [
         "theory",
-        "data",
-        "efficiency"
+        "efficiency",
+        "vision"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1222,8 +1301,9 @@
       "predicted_themes": [
         "data",
         "theory",
-        "efficiency"
+        "reasoning"
       ],
+      "keyword_coverage": 0.6666666666666666,
       "success": true,
       "error": null
     },
@@ -1236,9 +1316,10 @@
       ],
       "predicted_themes": [
         "retrieval",
-        "reasoning",
-        "agents"
+        "rl",
+        "reasoning"
       ],
+      "keyword_coverage": 0.8,
       "success": true,
       "error": null
     },
@@ -1254,6 +1335,7 @@
         "safety",
         "data"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -1269,6 +1351,7 @@
         "multimodal",
         "other"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1281,9 +1364,10 @@
       ],
       "predicted_themes": [
         "multimodal",
-        "reasoning",
-        "data"
+        "vision",
+        "reasoning"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -1299,6 +1383,7 @@
         "efficiency",
         "retrieval"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -1314,6 +1399,7 @@
         "agents",
         "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1329,6 +1415,7 @@
         "reasoning",
         "data"
       ],
+      "keyword_coverage": 0.7142857142857143,
       "success": true,
       "error": null
     },
@@ -1344,6 +1431,7 @@
         "reasoning",
         "efficiency"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -1359,6 +1447,7 @@
         "retrieval",
         "data"
       ],
+      "keyword_coverage": 0.75,
       "success": true,
       "error": null
     },
@@ -1374,6 +1463,7 @@
         "llm",
         "theory"
       ],
+      "keyword_coverage": 0.42857142857142855,
       "success": true,
       "error": null
     },
@@ -1387,6 +1477,7 @@
         "rl",
         "safety"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -1402,6 +1493,7 @@
         "llm",
         "retrieval"
       ],
+      "keyword_coverage": 0.8571428571428571,
       "success": true,
       "error": null
     },
@@ -1417,6 +1509,7 @@
         "reasoning",
         "data"
       ],
+      "keyword_coverage": 0.5714285714285714,
       "success": true,
       "error": null
     },
@@ -1432,6 +1525,7 @@
         "llm",
         "theory"
       ],
+      "keyword_coverage": 0.6666666666666666,
       "success": true,
       "error": null
     },
@@ -1447,6 +1541,7 @@
         "reasoning",
         "safety"
       ],
+      "keyword_coverage": 1.0,
       "success": true,
       "error": null
     }
