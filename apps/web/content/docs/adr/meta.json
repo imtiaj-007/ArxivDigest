@@ -1,0 +1,14 @@
+{
+  "title": "ADRs",
+  "pages": [
+    "index",
+    "0001-pure-batch-architecture",
+    "0002-supabase-over-cloudflare-d1",
+    "0003-uv-over-poetry",
+    "0004-hexagonal-architecture",
+    "0005-vercel-over-cloudflare-pages",
+    "0006-local-bge-over-voyage",
+    "0007-db-status-as-resume-checkpoint",
+    "0008-daily-cron-eval-gate"
+  ]
+}

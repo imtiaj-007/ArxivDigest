@@ -1,0 +1,102 @@
+---
+title: ADR-0001 — Pure Python batch agent, no FastAPI
+description: Status — Accepted. Date — 2026-05-26. The agent runs as a Typer CLI invoked by GitHub Actions cron; no HTTP server.
+---
+
+**Status:** Accepted &nbsp; **Date:** 2026-05-26
+
+## Context
+
+ArxivDigest's agent runs as a **daily cron job**: pull yesterday's papers,
+process them, write to DB, exit. It has no need to receive incoming HTTP
+requests; it's a closed-loop pipeline triggered by a scheduler.
+
+A common reflex when building Python services is to wrap them in FastAPI.
+That adds an HTTP server, request handlers, exposed endpoints, and the
+requirement to host a long-running process. The question: should we do that
+here?
+
+## Decision
+
+**No HTTP server. The agent is a pure Python batch process exposed as a
+Typer CLI.**
+
+Entry point is `arxivdigest run` (and related subcommands like `eval`,
+`label`, `seed-demo`). GitHub Actions cron invokes this CLI directly. The
+process runs to completion and exits.
+
+## Alternatives considered
+
+### A. FastAPI service with a `/run` endpoint
+
+Cron hits the endpoint instead of invoking the CLI directly.
+
+**Rejected because:**
+- Adds an always-on HTTP server requiring a host (Fly.io / Render free tiers
+  are flaky; Vercel has a 60s function limit, too short for our ~10min runs)
+- Wider attack surface (rate limiting, auth, CORS)
+- More moving parts to monitor (uptime, latency, certs)
+- HTTP layer adds nothing for a batch use case
+
+### B. Celery / RQ task queue
+
+Cron enqueues a task; worker dequeues and processes.
+
+**Rejected because:**
+- Requires a message broker (Redis / RabbitMQ) — another always-on service
+- Queue value is parallelism + retries + scheduling — we have none of those
+  needs for a daily single job
+- Adds operational complexity disproportionate to benefit
+
+### C. Serverless function (Vercel / AWS Lambda / Cloudflare Workers)
+
+**Rejected because:**
+- All free serverless tiers have execution time caps (10–60s); our pipeline
+  takes ~10min
+- Cold start overhead per invocation
+- Limited disk + memory for ML/embeddings workloads
+
+### D. Always-on Python worker on a tiny VPS
+
+**Rejected because:**
+- Always-on costs money
+- Hand-rolled scheduling is fragile compared to cron
+- One process loop crash kills everything until manual restart
+
+## Consequences
+
+### Positive
+
+- **Zero ops** for the agent itself — GitHub Actions handles scheduling,
+  retries, logs, secret injection.
+- **$0/month** — uses free GH Actions minutes.
+- **Reproducible** — each invocation is a fresh process; no state leakage
+  between runs.
+- **Easy testing** — no HTTP layer to mock; the agent is just functions
+  called with inputs.
+- **Observable by default** — GitHub Actions UI shows every run, exit code,
+  full stdout.
+
+### Negative / accepted trade-offs
+
+- **No on-demand runs from a UI** — manual triggers go through
+  `gh workflow run` or pushing a commit. Acceptable for V0; can add a
+  Vercel-hosted endpoint later if needed.
+- **No real-time progress for users** — the daily site updates only after
+  the run finishes. Acceptable for a daily-cadence product.
+- **GH Actions free tier cap of 2000min/month** — current usage ~900min/mo,
+  but a ceiling that needs monitoring.
+
+### When to revisit
+
+Re-evaluate this decision if any of:
+
+- Multiple stakeholders need to trigger on-demand runs frequently
+- Webhook-driven workflows become necessary
+- Run frequency increases beyond daily (real-time / hourly)
+- GH Actions free tier becomes insufficient
+
+## References
+
+- Related: [ADR-0004 — hexagonal architecture](/docs/adr/0004-hexagonal-architecture)
+  makes adding FastAPI later a non-breaking change.

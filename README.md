@@ -61,7 +61,7 @@ Runs autonomously, costs **$0/month** on free tiers, every LLM call traced in La
 | [CI_SECRETS.md](./docs/CI_SECRETS.md) | GH Actions secrets + variables setup |
 | [VERCEL_SETUP.md](./docs/VERCEL_SETUP.md) | Web deployment + env vars |
 | [runbooks/](./docs/runbooks/) | Operational runbooks |
-| [adr/](./docs/adr/) | Architecture Decision Records |
+| [Architecture Decision Records](https://arxiv-digest-preview.vercel.app/docs/adr) | 8 ADRs covering every significant tech choice — rendered on the live site |
 
 ## Quick start
 

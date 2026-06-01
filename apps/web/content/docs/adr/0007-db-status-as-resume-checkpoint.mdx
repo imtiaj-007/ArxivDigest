@@ -1,0 +1,111 @@
+---
+title: ADR-0007 — DB status columns as the resume checkpoint
+description: Status — Accepted. Date — 2026-05-30. The database's nullable status columns are the LangGraph checkpoint; no in-memory saver needed.
+---
+
+**Status:** Accepted &nbsp; **Date:** 2026-05-30
+
+## Context
+
+LangGraph supports persistent state via checkpointers (`MemorySaver`,
+`PostgresSaver`, etc.) — the framework's mechanism for "resume from where
+the graph crashed." STACK.md originally listed checkpointing as one of
+LangGraph's selling points.
+
+But ArxivDigest's runtime model is a **stateless GitHub Actions runner**
+that boots fresh every cron and exits when the pipeline finishes. There's
+no long-lived process. `MemorySaver` (in-memory) doesn't survive process
+termination, so it offers no resume value. `PostgresSaver` would introduce
+two extra checkpoint tables and pull LangGraph-internal state into our DB
+alongside `papers`, `digests`, `runs`.
+
+Meanwhile our schema already has a natural "what's pending" signal:
+each generated field is nullable, populated only when its corresponding
+stage completes.
+
+## Decision
+
+**The database's nullable status columns ARE the LangGraph checkpoint.**
+
+Each stage reads its own pending work from the DB:
+
+| Stage | Idempotent on |
+|---|---|
+| crawl | `INSERT … ON CONFLICT (arxiv_id) DO NOTHING` |
+| summarize | `WHERE summary IS NULL` |
+| classify | `WHERE themes IS NULL` |
+| embed | `WHERE embedding IS NULL` |
+| rank | `WHERE score IS NULL` |
+| publish | reads top-K (filters by all-non-null) |
+
+LangGraph's role becomes pure orchestration: it sequences nodes and shows
+the state machine in tooling. We do not use `MemorySaver` or `PostgresSaver`.
+
+## Alternatives considered
+
+### A. LangGraph `MemorySaver`
+
+**Rejected because:** in-memory only; lost on process exit. For a daily
+cron, this is no resume at all — every run starts fresh anyway.
+
+### B. LangGraph `PostgresSaver`
+
+**Strengths:** real persistent checkpoints; LangGraph Studio works against it.
+
+**Rejected because:**
+- Adds two LangGraph-internal tables to a DB that already has a clean
+  domain schema.
+- Couples our recovery model to LangGraph's checkpoint format (vendor
+  lock-in on a young framework).
+- Doesn't compose with the *natural* idempotency we already need for the
+  pipeline (`ON CONFLICT DO NOTHING` on crawl, `WHERE summary IS NULL` on
+  re-runs). We'd end up with two layers of "what's done": the LangGraph
+  checkpoint *and* the DB status columns. They could disagree.
+- The DB-status model is what an engineer reading the code would naturally
+  reach for anyway. Adding a second mechanism would be a tax, not a win.
+
+### C. No resume at all (re-process everything on each run)
+
+**Rejected because:** burns LLM budget on already-processed papers; could
+take 10× longer for backfills. Easy enough to get idempotency for free
+from the DB constraints; not getting it would be wasteful.
+
+## Consequences
+
+### Positive
+
+- **Resume is free.** A crashed run is recovered by re-running the graph;
+  each node only processes outstanding rows.
+- **One source of truth.** No risk of LangGraph's checkpoint state
+  disagreeing with the DB.
+- **No LangGraph internals leak into our DB.** Schema stays clean.
+- **Doubles as a backfill engine.** Need to re-summarize all papers under
+  a new prompt? `UPDATE papers SET summary = NULL` and re-run the cron.
+  Same idempotent path.
+- **Composes with the bulkhead.** One paper failing in a stage just leaves
+  it `IS NULL` for next run — no special "DLQ" needed.
+
+### Negative / accepted trade-offs
+
+- **No LangGraph Studio time-travel.** The "step backwards through the
+  graph state" feature requires a `PostgresSaver`. We can't use it.
+  *Mitigation:* Langfuse owns the trace view of every LLM call; sufficient
+  for our debugging.
+- **Stage signatures must be designed around idempotency.** Every stage
+  reads `WHERE X IS NULL`, processes, writes; no "carry intermediate
+  state to next node" pattern. This is a small design constraint we
+  embraced.
+- **Doesn't apply outside of pure-batch jobs.** A real-time pipeline with
+  in-flight state between stages would need an actual checkpointer.
+
+### When to revisit
+
+- If we move to a real-time / streaming model where intermediate state
+  must survive between stages.
+- If LangGraph Studio's time-travel becomes a debugging requirement.
+
+## References
+
+- Implementation: [`graph/builder.py`](https://github.com/imtiaj-007/ArxivDigest/blob/main/apps/agent/src/arxivdigest/graph/builder.py)
+- Related: [ADR-0004 — hexagonal architecture](/docs/adr/0004-hexagonal-architecture)
+- [LangGraph checkpointing docs](https://langchain-ai.github.io/langgraph/concepts/persistence/)
