@@ -125,5 +125,16 @@ class ArxivSource:
             for entry in root.findall(f"{{{_ATOM}}}entry")
             if (paper := _parse_entry(entry)) is not None
         ]
-        log.info("arxiv.fetched", requested=limit, parsed=len(papers))
+        # Surface the boundaries of the returned batch so cache/indexing drift is
+        # visible on the first cron line, not after days of zero-new-paper runs.
+        first = papers[0] if papers else None
+        last = papers[-1] if papers else None
+        log.info(
+            "arxiv.fetched",
+            requested=limit,
+            parsed=len(papers),
+            newest_id=first.arxiv_id if first else None,
+            oldest_id=last.arxiv_id if last else None,
+            oldest_published=last.published_at.date().isoformat() if last else None,
+        )
         return papers

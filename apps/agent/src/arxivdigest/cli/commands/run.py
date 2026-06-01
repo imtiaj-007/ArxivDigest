@@ -29,7 +29,12 @@ log = structlog.get_logger()
 
 DEFAULT_CATEGORIES = ["cs.AI", "cs.LG", "cs.CL"]
 MANUAL_LIMIT = 5
-DAILY_LIMIT = 50
+# 100 = ~2 days of cs.AI/cs.LG/cs.CL announcements. Wider than strictly needed
+# so we don't miss fresh papers if arxiv's search index lags 24-48h (e.g. over
+# weekends). Cost is negligible because duplicates are filtered at INSERT
+# (ON CONFLICT DO NOTHING) and downstream stages only run on `summary IS NULL`
+# rows, so dupes never reach the LLM.
+DAILY_LIMIT = 100
 CRAWL_TIMEOUT_S = 60.0
 
 
