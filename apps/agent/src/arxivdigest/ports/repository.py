@@ -76,6 +76,14 @@ class Repository(Protocol):
         """Return up to ``limit`` papers that have no themes yet."""
         ...
 
+    async def fetch_papers_by_ids(self, arxiv_ids: Sequence[str]) -> list[RawPaper]:
+        """Return papers matching the given arxiv_ids (any order; missing ones simply omitted)."""
+        ...
+
+    async def fetch_summary_map(self, arxiv_ids: Sequence[str]) -> dict[str, str | None]:
+        """Return {arxiv_id: raw_summary_json (or None)} for the given ids."""
+        ...
+
     async def update_themes(self, themes: Sequence[tuple[str, list[str]]]) -> int:
         """Set themes for each (arxiv_id, theme_slugs). Returns the number updated."""
         ...

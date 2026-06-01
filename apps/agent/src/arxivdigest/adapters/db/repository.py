@@ -130,6 +130,18 @@ SET themes = $2, updated_at = now()
 WHERE arxiv_id = $1
 """
 
+_FETCH_BY_IDS = """
+SELECT arxiv_id, title, abstract, authors, categories, published_at
+FROM papers
+WHERE arxiv_id = ANY($1)
+"""
+
+_FETCH_SUMMARY_MAP = """
+SELECT arxiv_id, summary
+FROM papers
+WHERE arxiv_id = ANY($1)
+"""
+
 _FETCH_UNRANKED = """
 SELECT arxiv_id, title, abstract, authors, categories, published_at
 FROM papers
@@ -326,6 +338,30 @@ class PostgresRepository:
             )
             for r in rows
         ]
+
+    async def fetch_papers_by_ids(self, arxiv_ids: Sequence[str]) -> list[RawPaper]:
+        if not arxiv_ids:
+            return []
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(_FETCH_BY_IDS, list(arxiv_ids))
+        return [
+            RawPaper(
+                arxiv_id=r["arxiv_id"],
+                title=r["title"],
+                abstract=r["abstract"],
+                authors=list(r["authors"]),
+                categories=list(r["categories"]),
+                published_at=r["published_at"],
+            )
+            for r in rows
+        ]
+
+    async def fetch_summary_map(self, arxiv_ids: Sequence[str]) -> dict[str, str | None]:
+        if not arxiv_ids:
+            return {}
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(_FETCH_SUMMARY_MAP, list(arxiv_ids))
+        return {r["arxiv_id"]: r["summary"] for r in rows}
 
     async def update_themes(self, themes: Sequence[tuple[str, list[str]]]) -> int:
         if not themes:

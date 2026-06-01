@@ -1,10 +1,18 @@
 # ArxivDigest
 
+[![daily-digest](https://github.com/imtiaj-007/ArxivDigest/actions/workflows/daily-digest.yml/badge.svg)](https://github.com/imtiaj-007/ArxivDigest/actions/workflows/daily-digest.yml)
+[![CI](https://github.com/imtiaj-007/ArxivDigest/actions/workflows/ci.yml/badge.svg)](https://github.com/imtiaj-007/ArxivDigest/actions/workflows/ci.yml)
+[![micro F1](https://img.shields.io/badge/dynamic/json?label=micro%20F1&query=%24.classification.micro_f1&url=https%3A%2F%2Fraw.githubusercontent.com%2Fimtiaj-007%2FArxivDigest%2Fmain%2Fevals%2Flast_report.json&color=brightgreen)](https://arxiv-digest-preview.vercel.app/about)
+[![schema validity](https://img.shields.io/badge/dynamic/json?label=schema%20validity&query=%24.schema_validity_rate&url=https%3A%2F%2Fraw.githubusercontent.com%2Fimtiaj-007%2FArxivDigest%2Fmain%2Fevals%2Flast_report.json&color=brightgreen)](https://arxiv-digest-preview.vercel.app/about)
+[![keyword coverage](https://img.shields.io/badge/dynamic/json?label=kw%20coverage&query=%24.avg_keyword_coverage&url=https%3A%2F%2Fraw.githubusercontent.com%2Fimtiaj-007%2FArxivDigest%2Fmain%2Fevals%2Flast_report.json&color=brightgreen)](https://arxiv-digest-preview.vercel.app/about)
+[![cost](https://img.shields.io/badge/cost-%240%2Fmo-brightgreen)](https://arxiv-digest-preview.vercel.app/about)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+
 > Autonomous daily AI agent that scans new arxiv `cs.AI` / `cs.LG` / `cs.CL` submissions, produces structured TL;DRs, classifies them by theme, and ranks them by novelty + impact — published every morning, unattended, at $0/month.
 
-**Status:** V0 Weeks 1–3 shipped. Daily cron live. Eval harness (Week 4) next.
+**Status:** V0 Weeks 1–4 in progress. Daily cron live, eval harness with CI regression gate live.
 **Live:** [arxiv-digest-preview.vercel.app](https://arxiv-digest-preview.vercel.app)
-**Reference:** [/docs/methodology](https://arxiv-digest-preview.vercel.app/docs/methodology) (engineering deep-dive) · [/docs/themes](https://arxiv-digest-preview.vercel.app/docs/themes) (taxonomy) · [/status](https://arxiv-digest-preview.vercel.app/status) (30-day run grid)
+**Reference:** [/docs/methodology](https://arxiv-digest-preview.vercel.app/docs/methodology) (engineering deep-dive) · [/docs/themes](https://arxiv-digest-preview.vercel.app/docs/themes) (taxonomy) · [/status](https://arxiv-digest-preview.vercel.app/status) (30-day run grid) · [/about](https://arxiv-digest-preview.vercel.app/about) (quality + cost ledger)
 
 ## What it does
 

@@ -1,0 +1,7 @@
+{
+  "_comment": "Metric floors the agent must stay above. Tighter than current observed values (so real regressions get caught) but with headroom for the ~0.04 run-to-run F1 variance from Groq's stochastic decoding at temp=0.2. Bump these when prompts/models genuinely improve.",
+  "micro_f1": 0.80,
+  "macro_f1": 0.80,
+  "schema_validity_rate": 0.95,
+  "avg_keyword_coverage": 0.65
+}
