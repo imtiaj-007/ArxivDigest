@@ -88,3 +88,11 @@ jobs:
             -H "Authorization: Bearer $WEB_REVALIDATE_TOKEN" \
             "$WEB_REVALIDATE_URL"
           echo
+
+      # Re-classify the ground-truth set and fail the workflow if any metric
+      # dropped below evals/baseline.json. Runs LAST so a regression doesn't
+      # block today's digest from publishing — the day's data is already out,
+      # this step just flags quality drift loud enough to investigate.
+      - name: Eval regression gate
+        if: success()
+        run: uv run arxivdigest eval --fail-on-regression
