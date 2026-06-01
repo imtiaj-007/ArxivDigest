@@ -3,6 +3,7 @@ import typer
 from arxivdigest.adapters.observability.errors import init_sentry
 from arxivdigest.adapters.observability.logging import configure_logging
 from arxivdigest.adapters.observability.tracing import init_tracing
+from arxivdigest.cli.commands import eval as eval_cmd_mod
 from arxivdigest.cli.commands import hello, label, run, seed
 from arxivdigest.config import get_settings
 
@@ -26,3 +27,4 @@ app.command(name="hello")(hello.hello)
 app.command(name="seed-demo")(seed.seed_demo)
 app.command(name="run")(run.run)
 app.command(name="label")(label.label)
+app.command(name="eval")(eval_cmd_mod.eval_cmd)

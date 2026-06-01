@@ -1,0 +1,1454 @@
+{
+  "timestamp": "2026-06-01T09:47:31.963659Z",
+  "git_sha": null,
+  "host": "Apples-MacBook-Pro-2.local",
+  "total": 95,
+  "processed": 95,
+  "schema_validity_rate": 1.0,
+  "classification": {
+    "micro_precision": 0.9049295774647887,
+    "micro_recall": 0.9145907473309609,
+    "micro_f1": 0.9097345132743363,
+    "macro_precision": 0.9286886685934602,
+    "macro_recall": 0.9302024943487562,
+    "macro_f1": 0.9291340758836356
+  },
+  "per_theme_f1": {
+    "safety": 0.875,
+    "robotics": 1.0,
+    "rl": 1.0,
+    "efficiency": 0.8478260869565217,
+    "vision": 0.9142857142857143,
+    "data": 0.8695652173913043,
+    "theory": 0.8955223880597014,
+    "multimodal": 1.0,
+    "other": 0.8461538461538461,
+    "agents": 1.0,
+    "reasoning": 0.9285714285714286,
+    "llm": 0.9642857142857143,
+    "retrieval": 0.8666666666666667,
+    "speech": 1.0
+  },
+  "papers": [
+    {
+      "arxiv_id": "2605.31603",
+      "expected_themes": [
+        "vision",
+        "multimodal",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "vision",
+        "multimodal",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31596",
+      "expected_themes": [
+        "theory",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "theory",
+        "vision",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31594",
+      "expected_themes": [
+        "theory",
+        "efficiency",
+        "agents"
+      ],
+      "predicted_themes": [
+        "theory",
+        "efficiency",
+        "agents"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31593",
+      "expected_themes": [
+        "agents",
+        "safety",
+        "theory"
+      ],
+      "predicted_themes": [
+        "safety",
+        "agents",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31590",
+      "expected_themes": [
+        "vision",
+        "multimodal",
+        "retrieval"
+      ],
+      "predicted_themes": [
+        "vision",
+        "multimodal",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31586",
+      "expected_themes": [
+        "llm",
+        "reasoning",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31584",
+      "expected_themes": [
+        "rl",
+        "reasoning",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "rl",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31581",
+      "expected_themes": [
+        "agents",
+        "reasoning",
+        "theory"
+      ],
+      "predicted_themes": [
+        "agents",
+        "reasoning",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31580",
+      "expected_themes": [
+        "multimodal",
+        "retrieval",
+        "theory"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "retrieval",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31575",
+      "expected_themes": [
+        "retrieval",
+        "efficiency",
+        "data"
+      ],
+      "predicted_themes": [
+        "retrieval",
+        "efficiency",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31564",
+      "expected_themes": [
+        "vision",
+        "multimodal",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "vision",
+        "multimodal",
+        "retrieval"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31563",
+      "expected_themes": [
+        "reasoning",
+        "data",
+        "other"
+      ],
+      "predicted_themes": [
+        "theory",
+        "efficiency",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31562",
+      "expected_themes": [
+        "data",
+        "theory",
+        "other"
+      ],
+      "predicted_themes": [
+        "theory",
+        "data",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31561",
+      "expected_themes": [
+        "reasoning",
+        "llm",
+        "safety"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "llm",
+        "safety"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31559",
+      "expected_themes": [
+        "llm",
+        "reasoning",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "llm",
+        "reasoning",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31558",
+      "expected_themes": [
+        "reasoning",
+        "theory",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "theory",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31556",
+      "expected_themes": [
+        "multimodal",
+        "vision",
+        "safety"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "vision",
+        "safety"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31550",
+      "expected_themes": [
+        "llm",
+        "reasoning",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31547",
+      "expected_themes": [
+        "theory",
+        "reasoning",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "theory",
+        "reasoning",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31545",
+      "expected_themes": [
+        "rl",
+        "agents",
+        "data"
+      ],
+      "predicted_themes": [
+        "rl",
+        "agents",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31539",
+      "expected_themes": [
+        "theory",
+        "data",
+        "other"
+      ],
+      "predicted_themes": [
+        "theory",
+        "data",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31535",
+      "expected_themes": [
+        "vision",
+        "efficiency",
+        "other"
+      ],
+      "predicted_themes": [
+        "vision",
+        "efficiency",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31534",
+      "expected_themes": [
+        "vision",
+        "efficiency",
+        "other"
+      ],
+      "predicted_themes": [
+        "vision",
+        "efficiency",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31532",
+      "expected_themes": [
+        "theory",
+        "data",
+        "other"
+      ],
+      "predicted_themes": [
+        "theory",
+        "data",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31522",
+      "expected_themes": [
+        "data",
+        "theory",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "data",
+        "theory",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31521",
+      "expected_themes": [
+        "speech",
+        "multimodal",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "speech",
+        "multimodal",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31520",
+      "expected_themes": [
+        "reasoning",
+        "data",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "data",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31518",
+      "expected_themes": [
+        "theory",
+        "efficiency",
+        "vision"
+      ],
+      "predicted_themes": [
+        "theory",
+        "efficiency",
+        "vision"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31514",
+      "expected_themes": [
+        "other",
+        "theory"
+      ],
+      "predicted_themes": [
+        "other",
+        "theory",
+        "safety"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31512",
+      "expected_themes": [
+        "llm",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "retrieval",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31509",
+      "expected_themes": [
+        "agents",
+        "rl",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "rl",
+        "agents",
+        "reasoning"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31506",
+      "expected_themes": [
+        "retrieval",
+        "reasoning",
+        "data"
+      ],
+      "predicted_themes": [
+        "retrieval",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31504",
+      "expected_themes": [
+        "multimodal",
+        "theory",
+        "data"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "theory",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31503",
+      "expected_themes": [
+        "multimodal",
+        "theory",
+        "retrieval"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "reasoning",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31500",
+      "expected_themes": [
+        "efficiency",
+        "theory",
+        "vision"
+      ],
+      "predicted_themes": [
+        "efficiency",
+        "theory",
+        "vision"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31498",
+      "expected_themes": [
+        "efficiency",
+        "retrieval",
+        "theory"
+      ],
+      "predicted_themes": [
+        "efficiency",
+        "retrieval",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31494",
+      "expected_themes": [
+        "llm",
+        "efficiency",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "llm",
+        "efficiency",
+        "reasoning"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31492",
+      "expected_themes": [
+        "reasoning",
+        "llm",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "llm",
+        "reasoning",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31490",
+      "expected_themes": [
+        "efficiency",
+        "reasoning",
+        "rl"
+      ],
+      "predicted_themes": [
+        "efficiency",
+        "reasoning",
+        "rl"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31485",
+      "expected_themes": [
+        "theory",
+        "vision",
+        "other"
+      ],
+      "predicted_themes": [
+        "theory",
+        "vision",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31484",
+      "expected_themes": [
+        "efficiency",
+        "llm",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "efficiency",
+        "llm",
+        "reasoning"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31483",
+      "expected_themes": [
+        "llm",
+        "reasoning",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31480",
+      "expected_themes": [
+        "reasoning",
+        "llm",
+        "theory"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "theory",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31478",
+      "expected_themes": [
+        "llm",
+        "efficiency",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "efficiency",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31469",
+      "expected_themes": [
+        "speech",
+        "data",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "speech",
+        "data",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31468",
+      "expected_themes": [
+        "agents",
+        "retrieval",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "agents",
+        "retrieval",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31464",
+      "expected_themes": [
+        "llm",
+        "efficiency",
+        "other"
+      ],
+      "predicted_themes": [
+        "llm",
+        "efficiency",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.31463",
+      "expected_themes": [
+        "agents",
+        "efficiency",
+        "llm"
+      ],
+      "predicted_themes": [
+        "agents",
+        "efficiency",
+        "llm"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30353",
+      "expected_themes": [
+        "agents",
+        "reasoning",
+        "safety"
+      ],
+      "predicted_themes": [
+        "agents",
+        "reasoning",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30351",
+      "expected_themes": [
+        "efficiency",
+        "vision",
+        "other"
+      ],
+      "predicted_themes": [
+        "efficiency",
+        "vision",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30350",
+      "expected_themes": [
+        "multimodal",
+        "robotics",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "robotics",
+        "reasoning"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30348",
+      "expected_themes": [
+        "llm",
+        "reasoning",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "llm",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30345",
+      "expected_themes": [
+        "llm",
+        "retrieval",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "retrieval",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30344",
+      "expected_themes": [
+        "vision",
+        "multimodal",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "vision",
+        "multimodal",
+        "reasoning"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30343",
+      "expected_themes": [
+        "reasoning",
+        "efficiency",
+        "llm"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "efficiency",
+        "llm"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30341",
+      "expected_themes": [
+        "vision",
+        "data",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "data",
+        "vision",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30337",
+      "expected_themes": [
+        "efficiency",
+        "llm",
+        "retrieval"
+      ],
+      "predicted_themes": [
+        "efficiency",
+        "llm",
+        "retrieval"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30336",
+      "expected_themes": [
+        "efficiency",
+        "rl",
+        "data"
+      ],
+      "predicted_themes": [
+        "efficiency",
+        "rl",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30335",
+      "expected_themes": [
+        "agents",
+        "reasoning",
+        "theory"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "agents",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30334",
+      "expected_themes": [
+        "llm",
+        "efficiency",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "data",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30333",
+      "expected_themes": [
+        "reasoning",
+        "theory",
+        "data"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "theory",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30329",
+      "expected_themes": [
+        "agents",
+        "data",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "agents",
+        "efficiency",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30327",
+      "expected_themes": [
+        "reasoning",
+        "efficiency",
+        "theory"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "efficiency",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30326",
+      "expected_themes": [
+        "reasoning",
+        "agents",
+        "robotics"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "robotics",
+        "agents"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30323",
+      "expected_themes": [
+        "rl",
+        "safety",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "rl",
+        "safety",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30319",
+      "expected_themes": [
+        "theory",
+        "data",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "theory",
+        "data",
+        "reasoning"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30318",
+      "expected_themes": [
+        "vision",
+        "multimodal",
+        "other"
+      ],
+      "predicted_themes": [
+        "vision",
+        "multimodal",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30315",
+      "expected_themes": [
+        "llm",
+        "theory",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "llm",
+        "theory",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30311",
+      "expected_themes": [
+        "multimodal",
+        "vision",
+        "other"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "vision",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30310",
+      "expected_themes": [
+        "vision",
+        "multimodal",
+        "theory"
+      ],
+      "predicted_themes": [
+        "vision",
+        "multimodal",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30295",
+      "expected_themes": [
+        "data",
+        "reasoning",
+        "llm"
+      ],
+      "predicted_themes": [
+        "data",
+        "reasoning",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30292",
+      "expected_themes": [
+        "theory",
+        "efficiency",
+        "data"
+      ],
+      "predicted_themes": [
+        "theory",
+        "data",
+        "reasoning"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30290",
+      "expected_themes": [
+        "reasoning",
+        "rl",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "rl",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30289",
+      "expected_themes": [
+        "retrieval",
+        "reasoning",
+        "data"
+      ],
+      "predicted_themes": [
+        "retrieval",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30288",
+      "expected_themes": [
+        "llm",
+        "efficiency",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "efficiency",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30284",
+      "expected_themes": [
+        "llm",
+        "reasoning",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30283",
+      "expected_themes": [
+        "multimodal",
+        "data",
+        "theory"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "data",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30280",
+      "expected_themes": [
+        "robotics",
+        "multimodal",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "robotics",
+        "reasoning"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30277",
+      "expected_themes": [
+        "theory",
+        "efficiency",
+        "vision"
+      ],
+      "predicted_themes": [
+        "theory",
+        "data",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30275",
+      "expected_themes": [
+        "data",
+        "theory",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "data",
+        "theory",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30274",
+      "expected_themes": [
+        "agents",
+        "retrieval",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "retrieval",
+        "reasoning",
+        "agents"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30273",
+      "expected_themes": [
+        "llm",
+        "safety",
+        "data"
+      ],
+      "predicted_themes": [
+        "llm",
+        "safety",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30268",
+      "expected_themes": [
+        "vision",
+        "multimodal",
+        "other"
+      ],
+      "predicted_themes": [
+        "vision",
+        "multimodal",
+        "other"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30265",
+      "expected_themes": [
+        "multimodal",
+        "vision",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30260",
+      "expected_themes": [
+        "llm",
+        "retrieval",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "llm",
+        "efficiency",
+        "retrieval"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30256",
+      "expected_themes": [
+        "multimodal",
+        "agents",
+        "data"
+      ],
+      "predicted_themes": [
+        "multimodal",
+        "agents",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30253",
+      "expected_themes": [
+        "theory",
+        "reasoning",
+        "data"
+      ],
+      "predicted_themes": [
+        "theory",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30251",
+      "expected_themes": [
+        "llm",
+        "reasoning",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "llm",
+        "reasoning",
+        "efficiency"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30247",
+      "expected_themes": [
+        "llm",
+        "retrieval",
+        "reasoning"
+      ],
+      "predicted_themes": [
+        "llm",
+        "retrieval",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30245",
+      "expected_themes": [
+        "reasoning",
+        "llm",
+        "theory"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "llm",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30244",
+      "expected_themes": [
+        "rl",
+        "safety"
+      ],
+      "predicted_themes": [
+        "rl",
+        "safety"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30241",
+      "expected_themes": [
+        "data",
+        "llm",
+        "retrieval"
+      ],
+      "predicted_themes": [
+        "data",
+        "llm",
+        "retrieval"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30237",
+      "expected_themes": [
+        "retrieval",
+        "reasoning",
+        "efficiency"
+      ],
+      "predicted_themes": [
+        "retrieval",
+        "reasoning",
+        "data"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30233",
+      "expected_themes": [
+        "reasoning",
+        "llm",
+        "theory"
+      ],
+      "predicted_themes": [
+        "reasoning",
+        "llm",
+        "theory"
+      ],
+      "success": true,
+      "error": null
+    },
+    {
+      "arxiv_id": "2605.30232",
+      "expected_themes": [
+        "rl",
+        "reasoning",
+        "safety"
+      ],
+      "predicted_themes": [
+        "rl",
+        "reasoning",
+        "safety"
+      ],
+      "success": true,
+      "error": null
+    }
+  ]
+}

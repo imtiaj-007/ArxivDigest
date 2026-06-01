@@ -130,6 +130,12 @@ SET themes = $2, updated_at = now()
 WHERE arxiv_id = $1
 """
 
+_FETCH_BY_IDS = """
+SELECT arxiv_id, title, abstract, authors, categories, published_at
+FROM papers
+WHERE arxiv_id = ANY($1)
+"""
+
 _FETCH_UNRANKED = """
 SELECT arxiv_id, title, abstract, authors, categories, published_at
 FROM papers
@@ -315,6 +321,23 @@ class PostgresRepository:
     async def fetch_unclassified(self, limit: int) -> list[RawPaper]:
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(_FETCH_UNCLASSIFIED, limit)
+        return [
+            RawPaper(
+                arxiv_id=r["arxiv_id"],
+                title=r["title"],
+                abstract=r["abstract"],
+                authors=list(r["authors"]),
+                categories=list(r["categories"]),
+                published_at=r["published_at"],
+            )
+            for r in rows
+        ]
+
+    async def fetch_papers_by_ids(self, arxiv_ids: Sequence[str]) -> list[RawPaper]:
+        if not arxiv_ids:
+            return []
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(_FETCH_BY_IDS, list(arxiv_ids))
         return [
             RawPaper(
                 arxiv_id=r["arxiv_id"],
