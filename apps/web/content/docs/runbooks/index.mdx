@@ -1,0 +1,31 @@
+---
+title: Overview
+description: Operational playbooks for when something breaks on the daily cron.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { AlertTriangle } from "lucide-react";
+
+Compact triage docs for the failure modes that have actually happened
+(or are realistically going to happen). Each one is a 5-minute read:
+symptoms first, mitigations second, recovery checks third.
+
+<Cards>
+  <Card
+    href="/docs/runbooks/groq-down"
+    icon={<AlertTriangle className="text-fd-primary" />}
+    title="Groq down or rate-limiting"
+    description="daily-digest red with repeating paper_failed logs; Groq 5xx or persistent 429s."
+  />
+</Cards>
+
+<Callout type="info" title="More land here as we hit them">
+  Planned slots once we trip on them in production:
+
+  - **Supabase paused** — Free tier auto-pauses after 7 days idle.
+  - **Eval F1 regression** — Daily gate goes red; how to bisect prompts.
+  - **Vercel build broken** — MDX or type error blocks the site;
+    `/api/revalidate` still works against the previous deploy.
+  - **arxiv announce lag** — Weekend backlog vs `DAILY_LIMIT` headroom.
+</Callout>

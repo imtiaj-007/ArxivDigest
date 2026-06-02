@@ -1,0 +1,103 @@
+---
+title: ADR-0008 — Daily-cron eval gate, not per-PR
+description: Status — Accepted. Date — 2026-06-01. Run the eval regression check once per day after publish, not on every PR.
+---
+
+**Status:** Accepted &nbsp; **Date:** 2026-06-01
+
+## Context
+
+V0's exit criteria include a regression gate: classification F1 must not
+drop more than ~5% from baseline, schema validity must stay above 95%,
+keyword coverage above 70%. The harness (see
+[methodology](/docs/methodology)) re-classifies the 95-paper hand-labeled
+ground truth and emits a JSON report.
+
+The question: **when** does the gate run? Two natural options:
+
+| | Where the gate runs | Trade-off |
+|---|---|---|
+| A | On every PR (in `ci.yml`) | Maximum signal: regressions caught before merge. Adds DB + Groq access to every PR build, ~3 min + ~95 8B calls per PR. |
+| B | Daily-digest workflow, after publish | Cheap: one eval/day, free-tier comfortable. Doesn't gate merges; relies on workflow failure / Sentry to alert. |
+| C | Both | Maximum signal at maximum cost. |
+
+## Decision
+
+**Option B: the eval regression gate runs as the LAST step of the
+daily-digest workflow.**
+
+Order in the workflow:
+
+1. Run digest pipeline (crawl → summarize → classify → embed → rank → publish)
+2. Revalidate web pages (POST to `/api/revalidate`)
+3. **Eval regression gate** (`arxivdigest eval --fail-on-regression`)
+
+If step 3 fails, the workflow goes red — but steps 1 and 2 have already
+completed. **The day's data ships first; the gate flags later.** This is
+deliberate: a quality regression should be visible, but it shouldn't
+prevent users from seeing today's digest.
+
+## Alternatives considered
+
+### A. Per-PR gate in `ci.yml`
+
+**Strengths:** catches regressions before they touch `main`.
+
+**Rejected because:**
+- The CI job currently doesn't need `production` env (just lint / typecheck /
+  pytest). Adding DB + Groq access to every PR widens the secrets surface.
+- Each PR pays ~3 min runtime + ~95 8B-model calls. Cheap individually,
+  but bumps the Groq daily budget when iterating.
+- For a solo project, the cost/benefit doesn't justify the friction. Most
+  PR-time regressions also surface tomorrow.
+
+### C. Both per-PR *and* daily
+
+**Rejected because:** the daily gate is sufficient. Adding the per-PR
+check is pure overhead for a V0 solo portfolio.
+
+## Why "after publish, not before"
+
+The eval re-classifies an already-classified ground truth — it doesn't
+need the day's freshly-crawled papers. So gating publish on eval doesn't
+help (the data flow is independent). And we want the digest visible to
+visitors even on a regression day; the gate's job is to alert, not block.
+
+## Consequences
+
+### Positive
+
+- **One eval/day** — well within Groq's free-tier daily caps.
+- **No PR friction** — engineers (or future-me) don't wait on 3 minutes
+  of eval per push.
+- **Trend visible on the site** — README badges + `/about` Quality block
+  read from `evals/last_report.json` and update with each daily refresh.
+- **Workflow failure is loud enough** — Sentry + the red ✗ on
+  `/status`'s grid signal the regression within a day.
+
+### Negative / accepted trade-offs
+
+- **Drift detected 24h late** (next cron) instead of pre-merge. For a
+  solo daily-cadence product, acceptable. For a team product with many
+  PRs/day, would want option A.
+- **Manual responsibility to investigate red runs.** No automatic
+  "block merge until fixed" pressure.
+- **History file (`evals/metrics/history.jsonl`) doesn't auto-persist
+  across CI runs.** Lives in ephemeral runner disk. Trend tracking is
+  local-dev for V0; a future enhancement is an auto-commit step or a
+  workflow artifact.
+
+### When to revisit
+
+- If we open the project to community PRs → add option A on top to gate
+  merges.
+- If commit cadence exceeds ~1 PR/week → the daily-after-merge feedback
+  is too slow, switch to A.
+- If we ever pay for Groq → per-PR gating becomes cost-cheap.
+
+## References
+
+- Implementation: gate logic in
+  [`cli/commands/eval.py`](https://github.com/imtiaj-007/ArxivDigest/blob/main/apps/agent/src/arxivdigest/cli/commands/eval.py)
+- Workflow step: [`daily-digest.yml`](https://github.com/imtiaj-007/ArxivDigest/blob/main/.github/workflows/daily-digest.yml)
+- Baseline floors: `evals/baseline.json`

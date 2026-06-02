@@ -1,0 +1,236 @@
+---
+title: Observability + Monitoring
+description: Logs, LLM traces, errors, and run history — how ArxivDigest knows it's healthy. structlog + Langfuse + Sentry + a runs table.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Code2, Layers, ScrollText, Workflow } from "lucide-react";
+
+<Callout type="info" title="Status (V0)">
+  structlog, Langfuse v4, Sentry, and the `runs` table are live and
+  exercised by the daily cron. Cost tracking, heartbeat, orphan detection,
+  and a Grafana-style SLO dashboard are V1+ enhancements described below.
+</Callout>
+
+## Philosophy
+
+Every production AI system should answer four questions at any moment:
+
+1. **Is it running?** — uptime, last successful run
+2. **Is it correct?** — eval scores, schema validation rates
+3. **Is it healthy?** — error rate, latency, retry rate
+4. **Is it efficient?** — cost per output, token usage trends
+
+ArxivDigest instruments all four at the V0 minimum.
+
+## Four pillars
+
+| Pillar | Tool | Cost | What we capture |
+|---|---|---|---|
+| **Logs** | structlog (JSON to stdout) + GH Actions log retention | Free | Every stage entry/exit, every paper transition, every error |
+| **LLM traces** | Langfuse Cloud (free 50K obs/mo) | Free | Every LLM call: prompt, completion, model, tokens, latency, retries |
+| **Errors** | Sentry (free 5000 errors/mo) | Free | Unhandled exceptions, breadcrumbs leading to error |
+| **Run history** | Postgres `runs` table | Free | Daily run start/end/status/per-stage counts; powers `/status` |
+
+## Structured logging (structlog)
+
+The agent uses `structlog` everywhere. In production (`APP_ENV=production`) it
+emits one JSON object per log line; in local dev it pretty-prints to the
+console.
+
+Wiring lives in `apps/agent/src/arxivdigest/adapters/observability/logging.py`.
+
+### Context propagation
+
+Every log line carries:
+
+- `event` — the event name (`crawl.persisted`, `summarize.paper_failed`, etc.)
+- `level` — info / warning / error
+- `timestamp` — ISO 8601 UTC
+- Plus stage-specific keys: `arxiv_id`, `model`, `prompt_version`, etc.
+
+### Example output
+
+```json
+{"event": "groq.summarized", "level": "info",
+ "timestamp": "2026-06-01T09:48:59Z",
+ "arxiv_id": "2605.30353"}
+
+{"event": "summarize.persisted", "level": "info",
+ "timestamp": "2026-06-01T09:50:14Z",
+ "crawled": 50, "summarized": 50, "written": 50}
+```
+
+### Why JSON in production
+
+- GH Actions captures stdout — can be downloaded as artifact, grepped, piped through `jq`
+- Standard format for log aggregators (Loki, ELK) if we migrate later
+- Local dev: `ConsoleRenderer` gives colored output for readability
+
+## LLM trace observability (Langfuse)
+
+The Groq, Gemini, and local-embeddings adapters each wrap their main entry
+point in a `trace_span("…", **input_data)` context manager (defined in
+`adapters/observability/tracing.py`). Langfuse v4 uses OTel under the hood,
+so spans nest naturally: each daily run is one trace, each stage opens a
+parent span, each LLM call gets its own child span.
+
+For each LLM call we get, in Langfuse:
+
+| Field | Source |
+|---|---|
+| Input (system + user messages) | Caller |
+| Output (parsed Pydantic model) | LLM response |
+| Model, provider | Adapter config |
+| Token counts | Groq SDK response |
+| Latency | Wall clock |
+| Tags | `stage`, `prompt_version`, `arxiv_id` |
+
+### Silent-by-default
+
+When `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` are absent (local dev
+without credentials), tracing logs `tracing.disabled` once and `trace_span`
+yields `None` — the agent runs unchanged.
+
+When set, every LLM call shows up in the Langfuse UI with full prompt +
+completion, useful for debugging "why did the model classify this paper
+as `theory` instead of `efficiency`?"
+
+### V1+ ideas
+
+- Public Langfuse dashboard linked from `/about` — daily cost trend, per-model latency, schema-failure rate
+- Cache hit-rate metric (currently no caching layer — V1 candidate)
+
+## Error monitoring (Sentry)
+
+The Sentry SDK is initialized in `adapters/observability/errors.py`, gated
+on `SENTRY_DSN`. We use `traces_sample_rate=0` so Sentry only catches
+**errors**; Langfuse owns LLM tracing, Sentry owns exception capture. No
+overlap.
+
+The DSN is treated as a **GH Actions variable** (not a secret) per Sentry's
+documented stance — DSNs are public-safe by design and rate-limited per
+project.
+
+### Alert policies (planned)
+
+| Condition | Channel | Status |
+|---|---|---|
+| First error of any type in 24h | Email | Sentry default |
+| Same error 5+ times in 1h | Email | Sentry default |
+| New unique error fingerprint | Email + auto-issue | V1+ |
+| Cron workflow failure | Email (GH Actions default) | live |
+
+## Run history (Postgres `runs` table)
+
+Every cron invocation writes a `runs` row via the lifecycle wrapper in
+`cli/commands/run.py`:
+
+```python
+run_id = await repository.start_run()
+try:
+    final = await run_pipeline(...)
+except Exception as exc:
+    await repository.fail_run(run_id, repr(exc)[:500])
+    raise
+await repository.complete_run(run_id, **final)  # per-stage counts
+```
+
+The row records: `started_at`, `completed_at`, `status` (`running` /
+`completed` / `failed`), per-stage paper counts, and `error_summary` on
+failure. Schema in `packages/db/src/schema.ts`.
+
+### Powers `/status`
+
+The `/status` page reads the last 30 days of `runs` and renders a grid
+(green / yellow / red / gray per day) + a recent-runs table with timestamp,
+status, duration, and per-stage counts. See [/status](/status) live.
+
+### V1+ ideas
+
+- Per-paper `llm_audit` table for granular cost + latency + retry data
+- Cache hit-rate (`cached = true` field)
+- Slowest-prompt-by-latency analysis
+
+## Cost tracking
+
+V0: no $ tracking is needed because Groq + Langfuse + Sentry + local
+embeddings are all free tiers, and arxiv + GH Actions are free for our
+volume. The `/about` Cost ledger documents this explicitly.
+
+V1+ if costs ever become non-zero:
+
+- Per-call token-count plumbed through `GroqClient._create` (instructor's
+  `create_with_completion` exposes usage)
+- Aggregated into `llm_audit` table
+- Surfaced as per-stage / per-model / per-day cost on `/about`
+
+## Heartbeat + orphan detection (V1+)
+
+Today, a process killed mid-pipeline leaves its `runs` row stuck on
+`status='running'` (the `fail_run` path only fires on exceptions, not
+SIGKILL or runner timeouts).
+
+V1+ plan: an async heartbeat task updates `runs.heartbeat_at` every 30s;
+a separate small workflow runs every 6h and marks any `running` row with
+a stale heartbeat as `status='failed'`. Stops zombie rows polluting
+`/status`.
+
+## SLO documentation (self-imposed)
+
+Even without a customer, defining SLOs signals senior thinking:
+
+| SLO | Target | Window |
+|---|---|---|
+| Daily run success | 99% | Rolling 30 days |
+| Run duration | P95 under 15min | Rolling 7 days |
+| Eval F1 (classification, micro) | ≥ 0.85 sustained | Rolling 14 days |
+| Schema validation rate | ≥ 95% | Rolling 7 days |
+| Site uptime | 99.9% (Vercel covers this) | Monthly |
+
+The eval F1 and schema validity SLOs are enforced by the
+[eval regression gate](/docs/adr/0008-daily-cron-eval-gate) — gate breach
+fails the workflow. The rest are observed in `runs` history.
+
+## Local dev observability
+
+When running `arxivdigest run --limit 5` locally without observability keys:
+
+- Logs render as colored console output (not JSON)
+- Langfuse + Sentry both log `*.disabled` once and no-op
+- The `runs` row is still recorded (DB writes are unconditional)
+
+This is critical — observability bugs should be caught locally, not in
+production.
+
+## Privacy + retention
+
+- **Logs in GH Actions**: 90 days retention (GitHub default for public repos)
+- **Langfuse traces**: 30 days on free tier
+- **Sentry events**: 90 days on free tier
+- **DB tables**: indefinite retention; `deleted_at` soft delete planned;
+  never hard-delete production data
+
+No PII handled in V0 (arxiv data is fully public; no user accounts).
+
+## Quick reference — where to look when X happens
+
+| Symptom | First place to look |
+|---|---|
+| Cron didn't fire | GitHub Actions tab |
+| Run failed | Sentry → most recent error → traceback |
+| Eval F1 dropped | `evals/metrics/history.jsonl` + `/about` Quality block |
+| Specific paper looks wrong | Langfuse trace for that `arxiv_id` |
+| Slow run | Run's per-stage event timestamps in the log |
+| Site stale | Vercel deploy log + last `runs` completion + `/api/revalidate` step in cron |
+| Supabase paused | Supabase dashboard |
+
+## Cross-references
+
+<Cards>
+  <Card href="/docs/architecture" icon={<Layers className="text-fd-primary" />} title="Architecture" description="The system design this observes." />
+  <Card href="/docs/methodology" icon={<Workflow className="text-fd-primary" />} title="Methodology" description="Pipeline stages with their tracing." />
+  <Card href="/docs/stack" icon={<Code2 className="text-fd-primary" />} title="Stack" description="Tooling choices behind each pillar." />
+  <Card href="/docs/adr/0008-daily-cron-eval-gate" icon={<ScrollText className="text-fd-primary" />} title="ADR-0008" description="Daily-cron eval gate enforces F1+schema SLOs." />
+</Cards>

@@ -1,0 +1,103 @@
+---
+title: ADR-0002 — Supabase Postgres over Cloudflare D1
+description: Status — Accepted. Date — 2026-05-26. We picked managed Postgres with pgvector over edge SQLite.
+---
+
+**Status:** Accepted &nbsp; **Date:** 2026-05-26
+
+## Context
+
+ArxivDigest needs a database for:
+- Structured paper records + metadata
+- Vector embeddings for similarity search (1024-dim)
+- Run history + LLM audit log
+- Future: users + subscriptions (V1+)
+
+Two free-tier options stood out:
+- **Cloudflare D1** — SQLite at the edge, generous free tier, simple, edge-distributed
+- **Supabase** — managed Postgres + pgvector + auth + storage, free tier with usage caps
+
+## Decision
+
+**Use Supabase Postgres + pgvector.**
+
+Drizzle ORM owns the schema (in `packages/db`). The agent uses `asyncpg` for
+direct connection (long-lived during the cron); the Next.js site uses
+`postgres-js` through the transaction-mode pooler.
+
+## Alternatives considered
+
+### A. Cloudflare D1 (SQLite at edge)
+
+**Strengths:** edge-distributed; ultra-low latency; 5GB storage free; same
+vendor as Cloudflare Pages.
+
+**Rejected because:**
+- **No native vector type** — would store as JSON/BLOB with cosine in
+  application code. Slow as data grows.
+- Limited JSON support vs Postgres (`jsonb`, GIN indexes, operators).
+- No FTS for hybrid search at the level we'd want.
+- No managed auth — would need to add it ourselves at V1+.
+- Limited concurrent write throughput.
+
+### B. Neon (managed Postgres)
+
+**Strengths:** very Postgres-native; branching feature.
+
+**Rejected because:** no built-in auth or storage; smaller free tier than
+Supabase.
+
+### C. PlanetScale (managed MySQL/Vitess)
+
+**Rejected because:** sunset their free hobby tier in 2024; MySQL lacks
+pgvector; less momentum than Postgres in AI/ML.
+
+### D. Self-hosted Postgres on Fly / Railway
+
+**Rejected because:** free tiers come with disk/uptime caveats; backup,
+monitoring, scaling all become our problem.
+
+## Why Supabase wins
+
+- Full Postgres with pgvector (HNSW vector search)
+- Row-Level Security (RLS) — agent uses service-role; site uses anon key
+- Built-in auth + storage (free, ready for V1+ subscriptions / PDFs)
+- Built-in REST/RPC APIs consumable from the site
+- Healthy free tier (500MB DB, 5GB bandwidth)
+- Studio UI for ad-hoc queries during dev + interviews
+- Drizzle integration as the single TS-side schema source
+
+## Consequences
+
+### Positive
+
+- One service for DB + auth + storage — fewer dependencies, simpler mental
+  model.
+- `pgvector` HNSW handles cosine novelty queries at scale.
+- RLS is a real security boundary.
+- Drizzle schema is the single source of truth shared across `apps/web` (TS)
+  and `apps/agent` (Python via raw SQL).
+- Interview demos: "let me show you the actual data" — Supabase Studio is
+  pretty.
+
+### Negative / accepted trade-offs
+
+- **Free-tier projects pause after 7 days of inactivity** — auto-resume on
+  first request, but cold-start latency. Daily cron pings every day, so
+  this won't trigger in normal operation.
+- **500MB storage cap** — sufficient for V0 + V1; need Supabase Pro ($25/mo)
+  past ~8GB.
+- **5GB monthly bandwidth** — comfortable for V0.
+- **Not edge-distributed** — single-region (Tokyo). Adds ~50–100ms vs D1
+  for global users; site uses Vercel edge cache for most reads anyway.
+
+### When to revisit
+
+- DB exceeds 8GB → upgrade to Supabase Pro ($25/mo) or migrate to Neon
+- Bandwidth exceeds 5GB/mo → same upgrade path
+- Need true multi-region writes → Postgres-as-a-Service doesn't help
+
+## References
+
+- [pgvector docs](https://github.com/pgvector/pgvector)
+- [Supabase pricing](https://supabase.com/pricing)

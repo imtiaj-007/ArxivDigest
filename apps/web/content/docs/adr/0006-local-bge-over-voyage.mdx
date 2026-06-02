@@ -1,0 +1,106 @@
+---
+title: ADR-0006 — Local BGE embeddings over Voyage API
+description: Status — Accepted. Date — 2026-05-30. Voyage's no-payment-method tier needs token-aware pacing; local BGE is forever-free with no rate limits.
+---
+
+**Status:** Accepted &nbsp; **Date:** 2026-05-30 &nbsp; **Supersedes:** initial embedding choice on 2026-05-29 (Voyage `voyage-3`)
+
+## Context
+
+The embed stage initially used Voyage AI's `voyage-3` (1024-dim, matches our
+`papers.embedding` column). It worked, but the no-payment-method tier caps
+at **3 RPM and 10K TPM**. The binding constraint is tokens-per-minute —
+a 50-paper batch (~15K tokens) trips it in a single request.
+
+The original mitigation was elaborate: token-aware chunking (≤8K tokens per
+request, ~chars/4 estimator), 60-second pacing between chunks, and a
+tenacity retry on `RateLimitError`. The pipeline worked but added fragile
+moving parts: chunking math, paced loops, retries — all to wrap a single
+embedding call.
+
+To unlock standard rate limits, Voyage requires a credit card on file
+(free tokens still apply). The maintainer has no credit card available.
+
+## Decision
+
+**Swap Voyage for local `BAAI/bge-large-en-v1.5` via `sentence-transformers`
+on CPU.** Same 1024 dimensions; no schema change.
+
+`LocalBGEEmbedder` lazy-loads the model on first call, wraps the synchronous
+`.encode()` in `asyncio.to_thread`, and sets `normalize_embeddings=True` so
+cosine similarity reduces to a dot product (matches our pgvector
+`vector_cosine_ops` HNSW index).
+
+## Alternatives considered
+
+### A. Stay on Voyage with token-aware pacing
+
+**Workable but fragile.** The chunking + pacing logic adds ~50 LOC, makes
+the embed stage the slowest part of the daily run (~60s pure wait), and
+makes us hostage to one vendor's rate-limit policy. Any tightening of the
+free tier would require code changes.
+
+### B. Jina Embeddings v3 API (free 1M tokens/mo, no CC)
+
+**Rejected because:** smaller vendor; free tier could change. Trades one
+API dependency for another.
+
+### C. Cohere embed-v3 trial
+
+**Rejected because:** "trial" terminology — Cohere does eventually push to
+paid.
+
+### D. HuggingFace Inference API
+
+**Rejected because:** strict rate limits; not great for batch.
+
+## Why `bge-large-en-v1.5` specifically
+
+- **1024-dim** — exact match to our existing column; no migration.
+- **Top of the open MTEB board** for English retrieval/STS at its size.
+- **CPU-friendly** — runs at ~0.5–1s per paper on a GH Actions runner.
+- **Cached weights** — 1.3 GB downloaded once; cached at
+  `~/.cache/huggingface/hub` between cron runs via `actions/cache`.
+
+## Consequences
+
+### Positive
+
+- **$0 forever** — no API key, no rate limits, no quota dance.
+- **Pacing logic deleted** — embed stage is now a single batch call.
+- **Faster runs** — ~30s for 50 papers on CPU vs Voyage's 60s pacing.
+- **One less external dependency** — Voyage outage no longer impacts the
+  daily run.
+- **Vendor-swap proof of concept** — the hexagonal `Embedder` port made
+  this a two-line change in `run.py` (instantiate `LocalBGEEmbedder()`
+  instead of `VoyageEmbedder(api_key)`). The `VoyageEmbedder` adapter
+  stays dormant in the repo for easy revert.
+
+### Negative / accepted trade-offs
+
+- **Adds CPU torch (~250 MB) + sentence-transformers (~50 MB)** to the
+  agent image. `pyproject.toml` pins torch to the PyTorch CPU wheel index
+  so we don't drag ~2.5 GB of CUDA libraries onto a CPU-only GH Actions
+  runner. (See `[tool.uv.sources]` in `pyproject.toml`.)
+- **First cron run downloads 1.3 GB** of model weights. Cached after.
+- **Different embedding space than Voyage** — any pre-Voyage vectors in
+  DB were incompatible with the new ones; cosine novelty would be
+  meaningless across the boundary. Fix: nulled all existing embeddings +
+  scores, let the next idempotent run rebuild them in the BGE space. This
+  worked cleanly because the stages are status-driven (`embedding IS NULL`,
+  `score IS NULL`).
+
+### When to revisit
+
+- If CPU inference time becomes the bottleneck (currently ~30s for 50
+  papers — comfortable) → switch back to a hosted API, or upgrade to a
+  GPU runner.
+- If Voyage adds a free-tier that doesn't require a credit card → consider
+  re-activating `VoyageEmbedder` (the adapter is still in the repo).
+
+## References
+
+- Migration commit: [`47286ee`](https://github.com/imtiaj-007/ArxivDigest/commit/47286ee)
+- Related: [ADR-0004 — hexagonal architecture](/docs/adr/0004-hexagonal-architecture)
+  is the reason this swap was a 2-line change instead of a refactor.
+- [BAAI/bge-large-en-v1.5 on HuggingFace](https://huggingface.co/BAAI/bge-large-en-v1.5)

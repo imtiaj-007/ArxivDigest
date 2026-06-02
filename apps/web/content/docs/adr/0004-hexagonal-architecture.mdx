@@ -1,0 +1,172 @@
+---
+title: ADR-0004 — Hexagonal (ports + adapters) architecture
+description: Status — Accepted. Date — 2026-05-26. Separate pure domain logic from infrastructure via typing.Protocol ports.
+---
+
+**Status:** Accepted &nbsp; **Date:** 2026-05-26
+
+## Context
+
+The agent integrates with many external services (Groq, Gemini, local
+embeddings, Supabase, arxiv API, Langfuse, Sentry) and runs pipeline logic
+over them. The naive approach — call SDKs directly from pipeline functions
+— works for V0 but causes problems as the system grows:
+
+- Hard to test pipeline logic without real network calls
+- Vendor swaps (e.g. "switch from Groq to OpenAI for one experiment") require
+  touching many files
+- Difficult to add cross-cutting behavior (caching, retries, metrics) without
+  code duplication
+- Mixing business logic with infrastructure concerns makes both harder to
+  reason about
+
+Hexagonal architecture (Alistair Cockburn, also "ports + adapters")
+separates these concerns explicitly. It's a slightly heavier upfront
+pattern, but pays off for any system intended to outlive its initial
+implementation.
+
+## Decision
+
+**Adopt hexagonal architecture for the agent.**
+
+Three layers, with strict direction-of-dependency:
+
+```
+   ┌──────────────────────────────────────┐
+   │   adapters/   (Groq, Gemini, local   │   ← concrete impls
+   │   BGE, Supabase, arxiv, Langfuse)    │
+   └──────────────┬───────────────────────┘
+                  │
+                  ▼
+   ┌──────────────────────────────────────┐
+   │   ports/      (typing.Protocol)      │   ← LLMClient, Embedder,
+   │                                      │     PaperSource, Repository
+   └──────────────┬───────────────────────┘
+                  │
+                  ▼
+   ┌──────────────────────────────────────┐
+   │   domain/     (pure logic)           │   ← models, prompts, ranking,
+   │   (no I/O, no network, no DB)        │     theme taxonomy
+   └──────────────────────────────────────┘
+
+   stages/ + graph/  ← orchestrate over ports
+```
+
+**Direction of dependency:** outer layers may depend on inner; inner must
+NOT depend on outer. `domain/` knows nothing about HTTP clients or DB
+sessions.
+
+## Alternatives considered
+
+### A. Flat module structure
+
+Standard Python script style: `agent/main.py` calls `groq.client.complete(...)`
+directly.
+
+**Rejected because:** pipeline functions become hard to unit-test; adding
+cross-cutting concerns means touching every call site; vendor swap is
+search-and-replace with subtle-bug risk.
+
+### B. Service classes without explicit ports
+
+OOP-style: `LLMService` class with `groq_client` as constructor arg.
+
+**Rejected because:** no formal interface contract — easy to accidentally
+couple to specific implementation details (Groq-specific error types);
+doesn't naturally support multiple implementations (the `MultiLLMClient`
+failover wrapper is a clean win in our design); doesn't make the dependency
+direction explicit.
+
+### C. Domain-driven design (full DDD)
+
+**Rejected because:** massively over-engineered for a daily batch
+pipeline. DDD shines for transactional business systems; we're a
+read-mostly content generator.
+
+## How it shakes out in code
+
+### `ports/` — Protocol interfaces
+
+```python
+# ports/llm.py
+class LLMClient(Protocol):
+    async def summarize(self, paper: RawPaper) -> PaperSummary: ...
+    async def classify(self, paper: RawPaper) -> Classification: ...
+    async def score_impact(self, paper: RawPaper) -> ImpactAssessment: ...
+```
+
+### `adapters/` — concrete implementations
+
+```python
+# adapters/llm/groq.py — Groq + instructor
+class GroqClient:
+    async def summarize(self, paper): ...
+    async def classify(self, paper): ...
+    async def score_impact(self, paper): ...
+
+# adapters/llm/multi.py — failover composition
+class MultiLLMClient:
+    """Routes each op to primary; on failure falls back."""
+    def __init__(self, primary: LLMClient, fallback: LLMClient): ...
+```
+
+The failover wrapper *also* implements `LLMClient`, so it can stack with
+anything. This composition was free.
+
+### `domain/` — pure logic
+
+```python
+# domain/ranking.py
+def blend_score(novelty: float | None, impact: float) -> float:
+    """Pure function: novelty + LLM impact → final 0-1 score."""
+```
+
+No I/O. No imports from `adapters/`. Easy unit tests.
+
+### Composition root
+
+```python
+# cli/commands/run.py — single place where adapters bind to ports
+llm: LLMClient = GroqClient(settings.groq_api_key)
+if settings.gemini_api_key:
+    llm = MultiLLMClient(primary=llm, fallback=GeminiClient(settings.gemini_api_key))
+embedder = LocalBGEEmbedder()
+# ... pass to the LangGraph builder
+```
+
+## Consequences
+
+### Positive
+
+- **Pipeline logic is easily testable** — pass stub adapters that implement
+  the ports. See `tests/unit/test_multi_llm.py` for the failover test.
+- **Vendor swap is one line** — change a single import + binding in the
+  composition root.
+- **Cross-cutting concerns compose cleanly** — `MultiLLMClient` wraps any
+  `LLMClient`; same pattern would work for caching, retries, metrics.
+- **Future FastAPI layer is non-breaking** — add a new "driver" (HTTP)
+  that calls the same stage functions.
+- **Reads as senior** — interviewers see the structure and recognise it.
+
+### Negative / accepted trade-offs
+
+- **More files, more directories** — V0 has ~20 files where a flat
+  structure might have 5. Cost is small for the discipline.
+- **Slight indirection** — reading code requires understanding "this is
+  calling through a port"; minor cognitive overhead.
+- **Easy to over-apply** — must resist temptation to put everything behind
+  a port; `domain/` should be small (~30% of code), `adapters/` larger.
+
+### When to revisit
+
+- If `domain/` ends up empty (everything is adapter glue) → architecture
+  isn't paying off; revisit
+- If we ship V1+ and adapters never change → the abstraction may be
+  unnecessary; can flatten safely
+
+## References
+
+- [Original "Hexagonal Architecture" — Alistair Cockburn](https://alistair.cockburn.us/hexagonal-architecture/)
+- Related: [ADR-0001 — pure batch](/docs/adr/0001-pure-batch-architecture)
+- Related: [ADR-0006 — local BGE](/docs/adr/0006-local-bge-over-voyage)
+  (which port-and-adapters made a clean 2-line swap)

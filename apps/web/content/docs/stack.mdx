@@ -1,0 +1,200 @@
+---
+title: Tech Stack
+description: Every layer of ArxivDigest's stack with the rationale for the pick and the alternatives that were rejected. $0/month on free tiers.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Layers, ScrollText } from "lucide-react";
+
+<Callout type="success" title="Total monthly cost: $0">
+  Every layer below stays inside a free tier, with 2–100× headroom at
+  current usage. Migration triggers + escape routes are at the bottom.
+</Callout>
+
+## At a glance
+
+| Layer | Pick | Free tier | Why |
+|---|---|---|---|
+| **Monorepo** | Turborepo + pnpm workspaces | Free | Vercel-native; mixed-language friendly |
+| **Frontend framework** | Next.js 16 (App Router) | Free | Industry default; resume signal; SSR/ISR built-in |
+| **Frontend language** | TypeScript | Free | Type safety; standard |
+| **Content / docs** | Fumadocs (MDX) | Free | Built for content-heavy sites |
+| **UI components** | shadcn/ui (base-nova) + @base-ui/react | Free | Copy-into-repo; full control; accessible |
+| **Styling** | Tailwind CSS 4 | Free | Standard; works with shadcn |
+| **Site hosting** | Vercel Hobby | 100GB bw, 100GB-hr functions | Best Next.js DX; hobby fine for personal projects |
+| **Database** | Supabase Postgres + pgvector | 500MB DB, 5GB bw, 2 projects | Full SQL; vector search built-in; built-in auth/storage when needed |
+| **DB ORM (TS side)** | Drizzle ORM | Free | Type-safe; minimal runtime; migrations |
+| **DB client (Python side)** | asyncpg | Free | Async direct connection, transaction-mode pooler-compatible |
+| **Agent language** | Python 3.12 | Free | AI/ML standard; full library ecosystem |
+| **Agent deps** | uv (Astral) | Free | 10–100× faster than Poetry; current 2026 standard |
+| **Agent framework** | LangGraph | Free | Stateful multi-stage; checkpointing-compatible |
+| **LLM (primary, 70B)** | Groq — Llama 3.3 70B versatile | 6000 req/day | ~500 tok/s; summarize stage |
+| **LLM (fast, 8B)** | Groq — Llama 3.1 8B Instant | 14400 req/day | Classify + impact scoring |
+| **LLM (failover, dormant)** | Gemini 2.0 Flash via instructor | 1500 req/day (when enabled) | `MultiLLMClient` wraps it; activated by setting `GEMINI_API_KEY` |
+| **LLM output validation** | instructor + Pydantic | Free | Auto-retry on schema fail |
+| **Embeddings** | Local `BAAI/bge-large-en-v1.5` via sentence-transformers | Free (local, no API) | 1024-d, MTEB-strong; runs on CPU in GH Actions |
+| **Cron / compute** | GitHub Actions | 2000 min/mo | Free, observable, version-controlled YAML |
+| **LLM trace observability** | Langfuse Cloud | 50K obs/mo | Best-in-class for LLM tracing |
+| **Error monitoring** | Sentry | 5000 errors/mo | Standard |
+| **Structured logging** | structlog | Free | JSON output; parseable; standard |
+| **Linting + formatting (Py)** | ruff | Free | Replaces black/flake8/isort/pyupgrade |
+| **Type checking (Py)** | mypy strict mode | Free | Standard |
+| **Testing (Py)** | pytest + pytest-asyncio + pytest-vcr + hypothesis | Free | Full pyramid + LLM record/replay |
+| **Security (Py)** | bandit + gitleaks | Free | Static analysis + secret detection |
+| **Linting (TS)** | ESLint + Prettier | Free | Standard |
+| **Type checking (TS)** | tsc strict | Free | Standard |
+| **CI/CD** | GitHub Actions | 2000 min/mo | Same as agent cron |
+| **Resilience** | tenacity + aiolimiter | Free | Retries + per-model rate limiting |
+| **HTTP client** | httpx (Py) / native fetch (TS) | Free | Modern, async-ready |
+| **CLI framework** | Typer | Free | FastAPI-ergonomics for CLI |
+
+**Total monthly cost: $0.**
+
+## Why these specific picks
+
+### Python over TypeScript for the agent
+
+Even though the rest of the stack is TypeScript, the agent stays Python because:
+
+- AI/ML resume signal is Python-first.
+- Library ecosystem maturity: `instructor`, `langgraph`, sentence-transformers, etc. are all Python-first.
+- Hiring filters: most AI/ML roles list Python as a hard requirement.
+- Mixed-language monorepo is normal; Turborepo doesn't care.
+
+A TS agent (Bun + LangGraph.js) would work technically, but reads as "didn't choose the standard tool for the job" in an AI engineering interview.
+
+### `uv` over Poetry
+
+See [ADR-0003](/docs/adr/0003-uv-over-poetry). TL;DR: in 2026 `uv` is the de-facto choice; Poetry reads as 2022-era.
+
+### Supabase over Cloudflare D1
+
+See [ADR-0002](/docs/adr/0002-supabase-over-cloudflare-d1). TL;DR: real Postgres beats SQLite for vector search; Supabase RLS gives auth-ready security from day 1.
+
+### Vercel over Cloudflare Pages
+
+See [ADR-0005](/docs/adr/0005-vercel-over-cloudflare-pages). TL;DR: best Next.js feature parity (Vercel built Next), native ISR, auto monorepo detection.
+
+### Hexagonal architecture for the agent
+
+See [ADR-0004](/docs/adr/0004-hexagonal-architecture). TL;DR: pure domain logic separated from infrastructure via `typing.Protocol` ports; "how would you swap LLM providers?" is a 2-line answer; signals senior thinking. Proven in practice by [ADR-0006](/docs/adr/0006-local-bge-over-voyage) — the Voyage→BGE migration was a 2-line composition-root swap.
+
+### LangGraph over plain Python state machine
+
+For V0, plain `if/else` would work. LangGraph chosen for:
+
+- Standard agent-framework signal in 2026.
+- Built-in state-machine structure + visualization.
+- Composable with our DB-checkpoint pattern (see [ADR-0007](/docs/adr/0007-db-status-as-resume-checkpoint)).
+
+We don't use LangGraph's `MemorySaver` or `PostgresSaver`. The DB's nullable status columns ARE our checkpoint — see ADR-0007 for the full rationale.
+
+### Local BGE over hosted embedding APIs
+
+See [ADR-0006](/docs/adr/0006-local-bge-over-voyage). TL;DR: Voyage's no-credit-card tier capped at 10K TPM, forcing token-aware chunking + 60s pacing. Local `bge-large-en-v1.5` runs on CPU in GH Actions, forever-free, no rate limits.
+
+### Drizzle over Prisma / Kysely / TypeORM
+
+For the TS side reading from Supabase:
+
+| Tool | Why not |
+|---|---|
+| Prisma | Heavyweight; codegen ceremony; ORM-shaped not SQL-shaped |
+| Kysely | Pure query builder; nice but no migration story |
+| TypeORM | Old; reflection-based; awkward TS types |
+| **Drizzle** | SQL-first; lightweight; great TS types; Supabase-friendly |
+
+### Fumadocs for the docs section
+
+For the `/docs` portion of the site:
+
+- Built for MDX content-heavy sites (this page renders through it).
+- Has built-in search, navigation, OG images, code highlighting.
+- Designed by Fuma Nama (active maintainer, well-respected).
+- Plays nice with Next.js App Router.
+- Bonus: its `HomeLayout` ships the same wordmark + nav for non-docs pages, so the entire site uses one nav source (see `apps/web/lib/layout-options.ts`).
+
+### shadcn/ui (base-nova) over Material UI / Chakra / Mantine
+
+shadcn/ui isn't a library — it's a copy-paste collection of accessible primitives styled with Tailwind. Why this over MUI/Chakra:
+
+- **Components live in your repo** — fully customizable, no version migration pain.
+- Best-in-class accessibility primitives (base-nova uses `@base-ui/react`, not Radix).
+- Industry standard 2026; every modern Next.js project uses it.
+- Bundle size cost = only what you use.
+
+## Free-tier headroom
+
+| Service | Free limit | Expected daily use | Headroom |
+|---|---|---|---|
+| GitHub Actions | 2000 min/mo | ~20–30 min/day = ~750 min/mo | **2.7×** |
+| Vercel Hobby | 100GB bw, 100GB-hr | under 5GB bw, mostly static | **20×+** |
+| Supabase | 500MB DB, 5GB bw | under 100MB DB initially | **5–50×** |
+| Groq Llama 3.3 70B | 6000 req/day | ~50 req/day (summarize) | **120×** |
+| Groq Llama 3.1 8B | 14400 req/day | ~150 req/day (classify + impact) | **96×** |
+| Gemini 2.0 Flash (dormant) | 1500 req/day when activated | 0 (free tier exhausted on current key) | n/a |
+| Langfuse | 50K obs/mo | ~10K/mo | **5×** |
+| Sentry | 5000 errors/mo | under 50 | **100×** |
+
+Even at 5× current growth, all services stay within free tiers.
+
+## Stack readiness assessment
+
+| Stack element | Maturity (2026) | Risk in 2 years | Notes |
+|---|---|---|---|
+| Next.js | Very high | Low | Industry default |
+| TypeScript | Very high | Negligible | — |
+| Python 3.12 | Very high | Low | LTS-shape |
+| `uv` | High (newer) | Low | Astral backing strong |
+| LangGraph | Medium-high | Medium | Could be replaced by next-gen framework |
+| Supabase | High | Low | YC-backed; widely adopted |
+| Groq | Medium-high | Medium | Hardware play; commercial trajectory dependent |
+| sentence-transformers / BGE | High | Low | Open-source baseline; survives any vendor exit |
+| Vercel | Very high | Low | Dominant Next.js host |
+| shadcn/ui | High | Medium | Code-copy model; no runtime lock-in even if abandoned |
+
+**Worst-case migration paths** all exist and aren't catastrophic:
+
+- LangGraph → CrewAI / AutoGen / pure Python
+- Groq → OpenAI / Anthropic / self-hosted vLLM
+- Embeddings → swap to any other model in `sentence-transformers`; nothing else in stack assumes the choice
+- Supabase → Postgres on Render / Neon / Railway
+- Vercel → Cloudflare Pages / Netlify
+
+## Alternatives considered and rejected
+
+| Considered | Rejected because |
+|---|---|
+| FastAPI for agent | Over-engineered for batch job; HTTP layer adds nothing |
+| Poetry for Python deps | Slower than uv; reads as 2022-era |
+| Cloudflare D1 (SQLite) | Less powerful for pgvector + complex queries |
+| Cloudflare Pages | Worse Next.js feature parity than Vercel |
+| Astro for site | Less industry signal than Next.js |
+| Plain MDX without Fumadocs | More code to write; less polish |
+| MUI / Chakra UI | Bundle weight; less customizable |
+| Prisma | Codegen ceremony; ORM-shaped not SQL-shaped |
+| Pinecone for vectors | Costs money; pgvector free and good enough |
+| OpenAI / Anthropic for LLMs | Costs money; Groq covers free-tier needs |
+| Voyage API embeddings | Free tier needs credit card for usable rate; local BGE is forever-free |
+| LangChain (not Graph) | Less stateful; doesn't compose with DB-as-checkpoint |
+| Docker for agent | Overhead for a 10-min daily job; `uv run` in GH Actions is enough |
+| Kubernetes anything | Massive overkill |
+
+## When to revisit stack decisions
+
+| Trigger | Re-evaluate |
+|---|---|
+| Daily LLM cost over $50/mo | Groq paid tier vs self-hosted vLLM on Runpod |
+| Daily DB writes over 100K | Supabase Pro ($25/mo) or move to Neon |
+| Vercel bw over 80GB/mo | Cloudflare Pages or Pro plan |
+| 10K+ vectors with poor search recall | Migrate from pgvector to Qdrant |
+| GH Actions hits 2000min/mo | Move cron to Cloudflare Workers Cron or Fly cron |
+| Multiple engineers contributing | Add ESLint config package, stricter PR review |
+
+## Cross-references
+
+<Cards>
+  <Card href="/docs/architecture" icon={<Layers className="text-fd-primary" />} title="Architecture" description="How the stack pieces fit together." />
+  <Card href="/docs/adr" icon={<ScrollText className="text-fd-primary" />} title="ADRs" description="Every significant decision in detail." />
+</Cards>

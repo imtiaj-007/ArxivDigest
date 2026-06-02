@@ -1,0 +1,43 @@
+---
+title: Architecture Decision Records
+description: Significant technical decisions for ArxivDigest, why they were made, and what alternatives were considered.
+---
+
+Reading code tells you **what** the system does. ADRs tell you **why** it's that
+way and what was rejected. Six months from now (or to a new reader), this saves
+hours of "why didn't we just..." conversations.
+
+## Format
+
+A lightweight variant of the [Michael Nygard format](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions.html):
+
+- **Status** — Proposed / Accepted / Superseded by ADR-NNNN / Deprecated
+- **Context** — what calls for a decision
+- **Decision** — what we chose
+- **Alternatives** — what else we considered, and why not
+- **Consequences** — what follows (good and bad)
+
+## Index
+
+| # | Title | Status | Date |
+|---|---|---|---|
+| [0001](/docs/adr/0001-pure-batch-architecture) | Pure Python batch agent, no FastAPI | Accepted | 2026-05-26 |
+| [0002](/docs/adr/0002-supabase-over-cloudflare-d1) | Supabase Postgres over Cloudflare D1 | Accepted | 2026-05-26 |
+| [0003](/docs/adr/0003-uv-over-poetry) | `uv` over Poetry for Python dependencies | Accepted | 2026-05-26 |
+| [0004](/docs/adr/0004-hexagonal-architecture) | Hexagonal (ports + adapters) for the agent | Accepted | 2026-05-26 |
+| [0005](/docs/adr/0005-vercel-over-cloudflare-pages) | Vercel over Cloudflare Pages | Accepted | 2026-05-26 |
+| [0006](/docs/adr/0006-local-bge-over-voyage) | Local BGE embeddings over Voyage API | Accepted | 2026-05-30 |
+| [0007](/docs/adr/0007-db-status-as-resume-checkpoint) | DB status columns as resume checkpoint | Accepted | 2026-05-30 |
+| [0008](/docs/adr/0008-daily-cron-eval-gate) | Daily-cron eval gate, not per-PR | Accepted | 2026-06-01 |
+
+## When to write an ADR
+
+Write one when the decision:
+
+- Locks in a constraint that affects multiple components
+- Picks between non-obvious alternatives
+- Will be questioned later ("why didn't we just use X?")
+- Affects how new contributors should think about the system
+
+Skip ADRs for: decisions reversible in less than a day, standard practices
+that aren't controversial, or single-file changes.

@@ -26,8 +26,18 @@ ARXIV_API_URL = "https://export.arxiv.org/api/query"
 # anonymous default User-Agent gets 429'd. See https://info.arxiv.org/help/api/
 _USER_AGENT = "ArxivDigest/0.1 (+https://github.com/imtiaj-007/ArxivDigest)"
 _HEADERS = {"User-Agent": _USER_AGENT}
-_MAX_ATTEMPTS = 3
+# GH Actions runners share IPs across many jobs hitting arxiv; the bare 3-req
+# retry budget exhausts inside ~6s on a sustained throttle. The 5-attempt
+# exponential schedule (3 → 6 → 12 → 24 → 30) gives ~75s of total backoff.
+_MAX_ATTEMPTS = 5
 _DEFAULT_RETRY_WAIT = 3.0
+_MAX_BACKOFF_WAIT = 30.0
+# Honour Retry-After but cap so arxiv can't park the cron for an hour.
+_RETRY_AFTER_CAP = 60.0
+
+
+class ArxivRateLimitedError(Exception):
+    """Raised when arxiv keeps returning 429 after the bounded retry budget."""
 
 _ATOM = "http://www.w3.org/2005/Atom"
 _VERSION_SUFFIX = re.compile(r"v\d+$")
@@ -88,17 +98,35 @@ class ArxivSource:
         self._base_url = base_url
 
     async def _get_with_retry(self, params: dict[str, str | int]) -> httpx.Response:
-        """GET with bounded retry on 429, honoring the ``Retry-After`` header."""
+        """GET with bounded retry on 429, honoring the ``Retry-After`` header.
+
+        Backoff is exponential (``_DEFAULT_RETRY_WAIT`` doubled per attempt,
+        capped at ``_MAX_BACKOFF_WAIT``) when arxiv omits ``Retry-After``.
+        Raises :class:`ArxivRateLimitedError` if every attempt 429s.
+        """
         response: httpx.Response | None = None
         for attempt in range(1, _MAX_ATTEMPTS + 1):
             response = await self._client.get(self._base_url, params=params, headers=_HEADERS)
             if response.status_code != httpx.codes.TOO_MANY_REQUESTS:
                 break
-            wait = float(response.headers.get("Retry-After", _DEFAULT_RETRY_WAIT))
-            log.warning("arxiv.rate_limited", attempt=attempt, wait=wait)
+            retry_after = response.headers.get("Retry-After")
+            if retry_after is not None:
+                wait = min(float(retry_after), _RETRY_AFTER_CAP)
+            else:
+                wait = min(_DEFAULT_RETRY_WAIT * (2 ** (attempt - 1)), _MAX_BACKOFF_WAIT)
+            log.warning(
+                "arxiv.rate_limited",
+                attempt=attempt,
+                wait=wait,
+                retry_after=retry_after,
+            )
             if attempt < _MAX_ATTEMPTS:
                 await asyncio.sleep(wait)
         assert response is not None  # noqa: S101 — loop runs at least once
+        if response.status_code == httpx.codes.TOO_MANY_REQUESTS:
+            raise ArxivRateLimitedError(
+                f"arxiv returned 429 on all {_MAX_ATTEMPTS} attempts",
+            )
         response.raise_for_status()
         return response
 
@@ -116,7 +144,19 @@ class ArxivSource:
             "max_results": limit,
         }
         with trace_span("arxiv.fetch_recent", categories=list(categories), limit=limit):
-            response = await self._get_with_retry(params)
+            try:
+                response = await self._get_with_retry(params)
+            except ArxivRateLimitedError as exc:
+                # Bulkhead: a persistent 429 is treated as "no new papers
+                # this run" rather than a fatal error. Downstream stages
+                # operate on rows where the relevant column IS NULL, so the
+                # pipeline still drains any backlog from previous runs.
+                log.warning(
+                    "arxiv.rate_limited_giving_up",
+                    error=str(exc),
+                    action="returning empty list; pipeline continues idempotently",
+                )
+                return []
             # Trusted HTTPS source (arxiv's own Atom API); not untrusted XML.
             root = ET.fromstring(response.text)  # noqa: S314
 

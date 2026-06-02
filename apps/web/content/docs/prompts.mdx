@@ -1,0 +1,238 @@
+---
+title: Prompt Design + Versioning
+description: How prompts are written, versioned, validated, and rolled out in ArxivDigest. They are code that ships to production — treated as such.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { TypeTable } from "fumadocs-ui/components/type-table";
+import { ScrollText, Sparkles, Tags, TerminalSquare, Workflow } from "lucide-react";
+
+<Callout type="info" title="Status (V0)">
+  Prompts-as-code + Pydantic-validated outputs are live. Shadow rollouts,
+  a `prompt_versions` DB table, and full prompt-attribution per paper are
+  V1+ ideas described below for context.
+</Callout>
+
+## Why prompts are the highest-leverage code
+
+In production AI systems, a single prompt change can swing output quality
+more than any architectural change. Prompts are **code that ships to
+production** and must be treated as such:
+
+- Versioned
+- Reviewed
+- Eval-gated
+- Rollback-able
+- Attributable (every output knows which prompt produced it)
+
+## Prompts are code, not config
+
+Every prompt lives in
+`apps/agent/src/arxivdigest/domain/prompts/` as a Python module:
+
+```
+domain/prompts/
+├── __init__.py
+├── summarize.py    ← VERSION = "summarize/v1"
+├── classify.py     ← VERSION = "classify/v1"
+└── rank.py         ← VERSION = "rank/v2"
+```
+
+### Why modules, not text files
+
+- **Python f-strings + functions** = real templating, type-checked, refactorable
+- **Imports** = composable
+- **Git diff readable** — reviewer sees prompt changes in plain text
+- **mypy** catches missing variables in interpolations
+- **No external prompt-template DSL** to learn
+
+### Module shape
+
+```python
+# domain/prompts/summarize.py
+from arxivdigest.domain.models import RawPaper
+
+VERSION = "summarize/v1"
+
+SYSTEM = (
+    "You are a research-paper summarizer for working AI/ML engineers. "
+    "Produce a structured TL;DR that helps a reader decide whether the full paper "
+    "is worth their time. Tone: technical but accessible, no marketing language. "
+    "Base every field strictly on the supplied title and abstract — never invent "
+    "results, numbers, or claims the abstract does not state."
+)
+
+def build_user_prompt(paper: RawPaper) -> str:
+    return (
+        f"Title: {paper.title}\n"
+        f"Authors: {', '.join(paper.authors) or 'unknown'}\n"
+        f"Categories: {', '.join(paper.categories)}\n\n"
+        f"Abstract:\n{paper.abstract}"
+    )
+```
+
+The `GroqClient` adapter pulls `SYSTEM` and `build_user_prompt()` from
+this module and tags the Langfuse trace with `prompt_version=VERSION`.
+
+## Pydantic-typed outputs (instructor)
+
+Every LLM call has a Pydantic output model.
+[`instructor`](https://github.com/jxnl/instructor) automatically retries on
+schema validation failure with a reformulated prompt. Field `description`s
+aren't just docs — they're embedded in the prompt that instructor sends,
+doubling as extraction guidance.
+
+### `PaperSummary` — summarize stage
+
+<TypeTable
+  type={{
+    problem: { type: "str", description: "The problem the paper addresses, one sentence." },
+    approach: { type: "str", description: "The core method or idea proposed." },
+    result: { type: "str", description: "The main quantitative or qualitative result." },
+    why_it_matters: { type: "str", description: "Why a practitioner should care." },
+  }}
+/>
+
+### `Classification` — classify stage
+
+<TypeTable
+  type={{
+    themes: { type: "list[str]", description: "1–3 theme slugs from the 14-theme taxonomy, most relevant first. Post-validated by `normalize_themes`." },
+  }}
+/>
+
+### `ImpactAssessment` — rank stage (impact)
+
+<TypeTable
+  type={{
+    score: { type: "float", description: "Calibrated 0–1 impact rating. Prompt nudges 'most land between 0.3–0.6'." },
+    reasoning: { type: "str", description: "One sentence justifying the score." },
+  }}
+/>
+
+What this gives:
+
+- LLM output **must** match schema or it's retried (`max_retries=2`)
+- Type-safe downstream code (`summary.approach`, not `summary["approach"]`)
+- Schema validity directly observable as an [eval metric](/docs/evals)
+  (currently 100% on the ground truth set)
+- Forces prompt to be schema-precise — badly-worded prompts fail fast
+
+This is the single biggest "production-grade AI engineering" signal.
+
+## Prompt design principles
+
+### 1. Structure first, content second
+
+LLMs are vastly better at filling structured schemas than producing
+well-organized prose. The Pydantic models above do this work; the prompt
+just describes what each field means.
+
+### 2. Constrain output shape explicitly
+
+<Callout type="warn" title="The rank/v1 → rank/v2 lesson">
+  The 8B model returned `[{schema, answer}]` (array-wrapped, included the
+  schema definition in the response) for one particular paper,
+  **deterministically**, on every retry. Fix in `rank/v2`:
+
+  > *Output format (strict): return ONLY a single JSON object with exactly
+  > two keys: `score` (a number between 0 and 1) and `reasoning` (one
+  > sentence explaining the score). Do NOT wrap the object in an array.
+  > Do NOT include any other keys, prefaces, or commentary.*
+
+  After the bump, the affected paper started scoring cleanly. When a
+  small model drifts the output shape, be explicit about what you do
+  *and don't* want.
+</Callout>
+
+### 3. Calibration nudges beat post-hoc clipping
+
+The `rank/v1` prompt asks the LLM to rate impact 0–1 and adds: *"Be
+calibrated and skeptical — most papers land between 0.3 and 0.6."*
+Without that nudge, LLMs inflate. The instruction shapes the distribution
+without any post-processing.
+
+### 4. Anti-hallucination clause for summarization
+
+> *Base every field strictly on the supplied title and abstract — never
+> invent results, numbers, or claims the abstract does not state.*
+
+Critical. Without it, the model cheerfully fabricates plausible-sounding
+numbers ("achieves 87% accuracy") that aren't in the abstract.
+
+### 5. Cheap model for filter, expensive for reasoning
+
+| Stage | Model |
+|---|---|
+| Summarize | Llama 3.3 70B |
+| Classify | Llama 3.1 8B Instant |
+| Rank — impact | Llama 3.1 8B Instant |
+
+The 8B handles constrained-choice problems (classify) and coarse 0–1
+ratings (impact) well enough; the 70B's tighter rate-limit budget is
+reserved for the open-ended summarize step. See
+[ADR-0008](/docs/adr/0008-daily-cron-eval-gate) for the trade-off
+discussion.
+
+### 6. Post-validate model outputs against your taxonomy
+
+The classify adapter doesn't trust the model to stay inside the
+taxonomy:
+
+```python
+result = await self._create(response_model=Classification, ...)
+themes = normalize_themes(result.themes)
+#  └─ filter to known slugs, dedupe, cap at 3, fall back to "other" if empty
+```
+
+The LLM cannot invent themes that escape into the database. See
+[theme taxonomy](/docs/themes) and `normalize_themes` in
+`domain/themes.py`.
+
+## Eval-gated prompt promotion
+
+Today's flow:
+
+1. Edit a prompt module locally; bump `VERSION` (e.g. `rank/v1 → rank/v2`).
+2. Run `arxivdigest eval` locally — get a JSON report.
+3. Commit + PR. The daily-cron's regression gate (see
+   [ADR-0008](/docs/adr/0008-daily-cron-eval-gate)) catches any drop in
+   micro F1, schema validity, or keyword coverage.
+4. After merge, the next cron runs against the new prompt; Langfuse
+   traces tag each call with the new `prompt_version`.
+
+## V1+ ideas
+
+- **`prompt_versions` DB table**: track every active + historical prompt
+  with `active_from` / `active_until` ranges; bump active version via DB
+  flip instead of code change.
+- **Per-paper prompt attribution**: `papers.summary_prompt_version`
+  column so we can answer "regenerate every paper that was processed with
+  the old prompt."
+- **Shadow rollout**: write to a `papers_shadow` table with the candidate
+  prompt for 7 days, compare F1, promote or discard.
+- **Explicit prompt-changelog page** at `/about` listing every promotion
+  + the eval delta that justified it.
+
+## Anti-patterns to avoid
+
+| Anti-pattern | Why bad |
+|---|---|
+| Edit prompt text inline in stage code | No versioning, no rollback, not reviewable |
+| Use string interpolation with untyped variables | Typos at runtime; no IDE help |
+| Skip output validation | LLM eventually returns garbage; downstream crashes |
+| Prompt that asks the LLM to "be creative" | Non-determinism plus low eval scores |
+| Long prompts (over 2000 tokens) | Cost, latency, dilutes instruction |
+| Mixing instruction + data without delimiters | Prompt-injection risk |
+| Generating prompts dynamically from user input | Injection + not versioned |
+
+## Cross-references
+
+<Cards>
+  <Card href="/docs/methodology" icon={<Workflow className="text-fd-primary" />} title="Methodology" description="Each stage's prompt in context." />
+  <Card href="/docs/themes" icon={<Tags className="text-fd-primary" />} title="Theme taxonomy" description="What classify chooses from." />
+  <Card href="/docs/testing" icon={<TerminalSquare className="text-fd-primary" />} title="Testing" description="Where prompts get eval-gated." />
+  <Card href="/docs/evals" icon={<Sparkles className="text-fd-primary" />} title="Eval harness" description="Multi-label F1 + schema + keyword coverage." />
+  <Card href="/docs/adr/0008-daily-cron-eval-gate" icon={<ScrollText className="text-fd-primary" />} title="ADR-0008" description="Why the regression gate runs daily, not per-PR." />
+</Cards>

@@ -1,0 +1,101 @@
+---
+title: ADR-0005 — Vercel over Cloudflare Pages
+description: Status — Accepted. Date — 2026-05-26. Best Next.js feature parity wins over Cloudflare's unlimited-bandwidth pitch.
+---
+
+**Status:** Accepted &nbsp; **Date:** 2026-05-26
+
+## Context
+
+The site is a Next.js 16 application (App Router) with mostly static
+content and a few SSR/ISR routes. It needs:
+
+- Auto-deploy from a GitHub repo
+- Free tier sufficient for a portfolio project
+- Good Next.js feature support
+- Edge CDN for global users
+- Simple monorepo handling (deploy `apps/web` from a Turborepo)
+
+Two strong contenders: Vercel and Cloudflare Pages. Both have generous
+free tiers, both auto-deploy from git, both have global CDNs.
+
+## Decision
+
+**Use Vercel Hobby tier.**
+
+## Alternatives considered
+
+### A. Cloudflare Pages
+
+**Strengths:** unlimited bandwidth (vs Vercel's 100GB/mo cap); cheaper paid
+tier; same vendor if we use Cloudflare for DNS / Workers / R2.
+
+**Rejected because:**
+- **Lags Vercel in Next.js feature support** — App Router features land on
+  Vercel first.
+- **ISR support is more config-heavy** — workable but not first-class.
+- **Less mature monorepo detection** — Vercel auto-detects `apps/web` in a
+  Turborepo; Cloudflare requires manual build config.
+- **OG image generation is harder** — Vercel has first-class `@vercel/og`.
+- **Server Actions + middleware** have parity gaps.
+
+For a portfolio project where the Next.js site presentation matters,
+choosing the platform that ships features first wins.
+
+### B. Netlify
+
+**Rejected because:** less Next.js-native than Vercel (retrofitted vs
+built); free tier bandwidth same as Vercel; no clear advantage.
+
+### C. Self-host on Fly.io / Railway / Render
+
+**Rejected because:** more ops overhead; slower deploys; no free tier as
+comfortable as Vercel for Next.js.
+
+### D. GitHub Pages
+
+**Rejected because:** no SSR/ISR — can't render today's digest
+dynamically; static-only.
+
+## Consequences
+
+### Positive
+
+- **Best Next.js DX** — push to main, deploy in 1–2min, preview URL per PR.
+- **Auto monorepo detection** — Vercel sees the Turborepo, picks
+  `apps/web` automatically.
+- **Native ISR + Server Actions** — no config gymnastics.
+- **Per-PR preview deploys** — every PR gets a unique URL.
+- **Generous free tier** — 100GB bandwidth, 100GB-hours of function
+  execution.
+
+### Negative / accepted trade-offs
+
+- **Vercel Hobby ToS says "non-commercial"** — fine for a portfolio
+  project; upgrade to Pro ($20/mo) if ArxivDigest ever monetises.
+- **100GB bandwidth cap** — current expectation is under 5GB/mo; 20× headroom.
+  Migration to Cloudflare is straightforward if we cross 80GB.
+
+### When to revisit
+
+- Bandwidth > 80GB/mo for 2 consecutive months
+- Vercel sunsets Hobby tier or restricts non-commercial scope
+- ArxivDigest becomes a commercial product (upgrade to Pro regardless)
+
+## Comparison summary
+
+| Criterion | Vercel | Cloudflare Pages |
+|---|---|---|
+| Next.js feature parity | **Best** | Lagging |
+| Free tier bandwidth | 100GB/mo | Unlimited |
+| Monorepo auto-detection | Excellent | Manual config |
+| Per-PR preview deploys | Native | Native |
+| ISR support | First-class | More config |
+| OG image generation | `@vercel/og` | Manual |
+| Server Actions | First-class | Limited |
+| Migration cost if we leave | Low (Next.js portable) | Low |
+
+## References
+
+- [Vercel pricing](https://vercel.com/pricing)
+- [Cloudflare Pages](https://pages.cloudflare.com/)

@@ -1,4 +1,24 @@
 {
   "title": "ArxivDigest Docs",
-  "pages": ["index", "methodology", "themes"]
+  "pages": [
+    "---Web Portal---",
+    "[Papers](/papers)",
+    "[Status](/status)",
+    "[About](/about)",
+    "---Getting Started---",
+    "index",
+    "methodology",
+    "themes",
+    "---Engineering---",
+    "architecture",
+    "stack",
+    "prompts",
+    "testing",
+    "evals",
+    "observability",
+    "security",
+    "---Operations---",
+    "runbooks",
+    "adr"
+  ]
 }

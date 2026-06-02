@@ -1,32 +1,159 @@
 ---
 title: Documentation
-description: How ArxivDigest works under the hood — methodology, taxonomy, and design decisions.
+description: How ArxivDigest works under the hood — methodology, architecture, evals, and design decisions.
 ---
+
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Callout } from "fumadocs-ui/components/callout";
+import {
+  Activity,
+  BookOpen,
+  Code2,
+  Database,
+  Eye,
+  FileCode,
+  GitBranch,
+  Layers,
+  Lock,
+  Newspaper,
+  ScrollText,
+  Sparkles,
+  Tags,
+  TerminalSquare,
+  Workflow,
+  Wrench,
+} from "lucide-react";
 
 ArxivDigest is an autonomous daily AI agent that scans new arxiv `cs.AI`, `cs.LG`,
 and `cs.CL` submissions, produces structured TL;DRs, classifies them by theme, and
 ranks them by novelty and impact — all on free-tier infrastructure, $0/month.
 
-## What's in here
+<Callout type="info" title="Reading this for the first time?">
+  Start with **[Methodology](/docs/methodology)** (what each pipeline stage
+  does) and **[Architecture](/docs/architecture)** (how the pieces fit). The
+  rest is reference.
+</Callout>
 
-- **[Methodology](/docs/methodology)** — the pipeline stage by stage: prompts, models,
-  the idempotent resume design, rate-limit handling, ranking math.
-- **[Theme taxonomy](/docs/themes)** — the 14 themes and what each one covers.
+## Start here
+
+<Cards>
+  <Card
+    href="/docs/methodology"
+    icon={<Workflow className="text-fd-primary" />}
+    title="Methodology"
+    description="Pipeline stage by stage: prompts, models, idempotent resume, rate-limit handling, ranking math."
+  />
+  <Card
+    href="/docs/themes"
+    icon={<Tags className="text-fd-primary" />}
+    title="Theme taxonomy"
+    description="The 14 themes and what each one covers."
+  />
+</Cards>
+
+## Engineering
+
+<Cards>
+  <Card
+    href="/docs/architecture"
+    icon={<Layers className="text-fd-primary" />}
+    title="Architecture"
+    description="Hexagonal layering, 6-stage LangGraph pipeline, schema, DB-as-checkpoint resume."
+  />
+  <Card
+    href="/docs/stack"
+    icon={<Code2 className="text-fd-primary" />}
+    title="Tech stack"
+    description="Every layer with the why-this-and-not-that, free-tier headroom, escape routes."
+  />
+  <Card
+    href="/docs/prompts"
+    icon={<FileCode className="text-fd-primary" />}
+    title="Prompts"
+    description="Prompts-as-code, Pydantic-validated outputs, the rank/v1 → rank/v2 story."
+  />
+  <Card
+    href="/docs/testing"
+    icon={<TerminalSquare className="text-fd-primary" />}
+    title="Testing"
+    description="What's tested today, what's planned, the target test pyramid."
+  />
+  <Card
+    href="/docs/evals"
+    icon={<Sparkles className="text-fd-primary" />}
+    title="Eval harness"
+    description="Multi-label F1, schema validity, keyword coverage, daily-cron regression gate."
+  />
+  <Card
+    href="/docs/observability"
+    icon={<Activity className="text-fd-primary" />}
+    title="Observability"
+    description="structlog, Langfuse, Sentry, runs table, self-imposed SLOs."
+  />
+  <Card
+    href="/docs/security"
+    icon={<Lock className="text-fd-primary" />}
+    title="Security"
+    description="Threat model, secrets, RLS, defense-in-depth, incident playbooks."
+  />
+</Cards>
+
+## Operations
+
+<Cards>
+  <Card
+    href="/docs/runbooks"
+    icon={<Wrench className="text-fd-primary" />}
+    title="Runbooks"
+    description="What to do when something breaks — symptoms, triage, mitigation, recovery."
+  />
+  <Card
+    href="/docs/adr"
+    icon={<ScrollText className="text-fd-primary" />}
+    title="Architecture Decision Records"
+    description="8 ADRs covering every significant tech choice — what we picked, what we rejected, why."
+  />
+</Cards>
 
 ## Elsewhere
 
-- **[/papers](/papers)** — today's ranked digest.
-- **[/status](/status)** — the last 30 days of agent runs.
-- **[/about](/about)** — the 30-second overview, stack, and cost ledger.
-- **[Source on GitHub](https://github.com/imtiaj-007/ArxivDigest)** — MIT-licensed.
+<Cards>
+  <Card
+    href="/papers"
+    icon={<Newspaper className="text-fd-primary" />}
+    title="/papers"
+    description="Today's ranked digest."
+  />
+  <Card
+    href="/status"
+    icon={<Database className="text-fd-primary" />}
+    title="/status"
+    description="The last 30 days of agent runs."
+  />
+  <Card
+    href="/about"
+    icon={<BookOpen className="text-fd-primary" />}
+    title="/about"
+    description="30-second overview, stack, cost ledger, live quality metrics."
+  />
+  <Card
+    href="https://github.com/imtiaj-007/ArxivDigest"
+    icon={<GitBranch className="text-fd-primary" />}
+    title="Source on GitHub"
+    description="MIT-licensed. Pre-commit hooks, CI, daily cron, ADRs."
+  />
+</Cards>
 
 ## Reading the digest
 
 Each paper card shows:
 
-- **Theme badges** — 1–3 taxonomy slugs, most relevant first (see [taxonomy](/docs/themes)).
-- **Impact score** — blended novelty (cosine distance to neighbors in embedding
-  space) + LLM impact judgment, on a 0–1 scale. Most papers land in `0.4–0.6`;
+- <Eye className="inline size-4 text-fd-primary" /> **Theme badges** — 1–3
+  taxonomy slugs, most relevant first (see [taxonomy](/docs/themes)).
+- <Sparkles className="inline size-4 text-fd-primary" /> **Impact score** —
+  blended novelty (cosine distance to neighbors in embedding space) +
+  LLM-judged impact, on a 0–1 scale. Most papers land in `0.4–0.6`;
   see [methodology → rank](/docs/methodology#rank).
-- **Structured TL;DR** — Problem / Approach / Result / Why it matters. Grounded
-  strictly in the abstract; the prompt forbids inventing claims.
+- <FileCode className="inline size-4 text-fd-primary" /> **Structured TL;DR**
+  — Problem / Approach / Result / Why it matters. Grounded strictly in the
+  abstract; the prompt forbids inventing claims.
