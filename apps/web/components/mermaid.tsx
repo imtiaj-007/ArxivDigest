@@ -1,42 +1,47 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-declare global {
-  interface Window {
-    __arxivdigestMermaidInit?: boolean;
-  }
+function readDarkMode(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.documentElement.classList.contains("dark");
 }
 
 export function Mermaid({ chart }: { chart: string }) {
   const id = useId().replace(/[:]/g, "_");
-  const ref = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string | null>(null);
+  const [isDark, setIsDark] = useState<boolean>(false);
+
+  // Track <html class="dark"> toggles so diagrams re-render with the right theme.
+  useEffect(() => {
+    setIsDark(readDarkMode());
+    const observer = new MutationObserver(() => setIsDark(readDarkMode()));
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const m = (await import("mermaid")).default;
-      if (!window.__arxivdigestMermaidInit) {
-        m.initialize({
-          startOnLoad: false,
-          theme: "default",
-          fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui",
-          themeVariables: {
-            primaryColor: "#fafafa",
-            primaryTextColor: "#0a0a0a",
-            primaryBorderColor: "#d4d4d8",
-            lineColor: "#71717a",
-            secondaryColor: "#f4f4f5",
-            tertiaryColor: "#fafafa",
-          },
-          flowchart: { curve: "basis", htmlLabels: true, useMaxWidth: true },
-          sequence: { useMaxWidth: true },
-        });
-        window.__arxivdigestMermaidInit = true;
-      }
+      // Re-init every render — mermaid bakes theme at init, so toggle pulls
+      // require a fresh initialize before render.
+      m.initialize({
+        startOnLoad: false,
+        theme: isDark ? "dark" : "neutral",
+        // 'handDrawn' gives a pencil-sketch aesthetic; built-in to mermaid v11.
+        look: "handDrawn",
+        handDrawnSeed: 7,
+        fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui",
+        flowchart: { curve: "basis", htmlLabels: true, useMaxWidth: true },
+        sequence: { useMaxWidth: true },
+        er: { useMaxWidth: true },
+      });
       try {
-        const { svg } = await m.render(`mmd_${id}`, chart);
+        const { svg } = await m.render(`mmd_${id}_${isDark ? "d" : "l"}`, chart);
         if (!cancelled) setSvg(svg);
       } catch (err) {
         if (!cancelled) {
@@ -49,11 +54,10 @@ export function Mermaid({ chart }: { chart: string }) {
     return () => {
       cancelled = true;
     };
-  }, [chart, id]);
+  }, [chart, id, isDark]);
 
   return (
     <div
-      ref={ref}
       className="my-6 flex justify-center overflow-x-auto rounded-lg border border-fd-border bg-fd-card p-4"
       // biome-ignore lint/security/noDangerouslySetInnerHtml: mermaid emits sanitized SVG
       dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}

@@ -43,11 +43,6 @@ Postgres database**:
     web --> vercel
     agent -.-> langfuse
     agent -.-> sentry
-
-    classDef sub fill:#fafafa,stroke:#d4d4d8,color:#0a0a0a
-    classDef side fill:#f4f4f5,stroke:#a1a1aa,color:#52525b,stroke-dasharray:4 2
-    class agent,web sub
-    class langfuse,sentry side
 `} />
 
 The two subsystems share **only the database schema** as their contract. The
@@ -82,9 +77,6 @@ honour for correctness.
     rank[RANK<br/>novelty + 8B impact<br/>papers.score]
     publish[PUBLISH<br/>upsert digests row<br/>from top-K]
     crawl --> summarize --> classify --> embed --> rank --> publish --> done([END])
-
-    classDef stage fill:#fafafa,stroke:#d4d4d8,color:#0a0a0a
-    class crawl,summarize,classify,embed,rank,publish stage
 `} />
 
 <Callout type="info" title="Resume checkpoint = DB status columns">

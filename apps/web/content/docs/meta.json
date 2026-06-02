@@ -1,6 +1,11 @@
 {
   "title": "ArxivDigest Docs",
   "pages": [
+    "---Web Portal---",
+    "[Papers](/papers)",
+    "[Status](/status)",
+    "[About](/about)",
+    "---Getting Started---",
     "index",
     "methodology",
     "themes",
