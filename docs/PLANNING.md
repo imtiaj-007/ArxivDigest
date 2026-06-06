@@ -3,10 +3,13 @@
 ## Phase map
 
 ```
-V0 — Working pipeline + public site                   (3-4 weeks)
-V1 — Quality + community polish                       (~2 months)
-V2 — Traction-dependent expansion                     (open-ended)
+V0 — Working pipeline + public site                   (3-4 weeks)  ← closing now
+V1 — Polish + community pull                          (~1-2 months)
+V2 — Personalisation + reach                          (3-6 months, traction-gated)
+V3 — Production-grade ops                             (only when scale/reliability demands)
 ```
+
+Public companion: [ROADMAP.md](../ROADMAP.md) — single-page version, lives at repo root, kept in sync.
 
 ## V0 — Working pipeline + public site
 
@@ -91,39 +94,45 @@ Goal: eval harness gates quality; project reads as portfolio-grade.
 - [ ] **Architecture deep-dive blog post** — published on dev.to / Medium / Substack
 - [ ] **Demo video** — 90-second Loom: cron firing → traces in Langfuse → site updating
 - [ ] **GitHub Project board** — public roadmap visible from README
-- [x] **License (Apache 2.0) + CONTRIBUTING.md + CODE_OF_CONDUCT.md** — License + NOTICE done (Apache 2.0, attribution required); CONTRIBUTING/CODE_OF_CONDUCT pending
+- [x] **License (Apache 2.0) + CONTRIBUTING.md** — LICENSE + NOTICE (attribution required) + CONTRIBUTING.md shipped. CODE_OF_CONDUCT explicitly skipped for now (solo project; revisit when external contributors arrive)
 - [ ] **Profile pin** — repo pinned on personal GitHub profile
 
 **Exit criterion (V0 done):** 14 consecutive days of green daily runs; eval F1 sustained ≥ 0.85; one published writeup; pinned on profile.
 
-## V1 — Quality + community polish (~2 months after V0)
+## V1 — Polish + community pull (~1-2 months after V0)
 
-Goal: turn the working system into something a small community will use and stars.
+Goal: turn the working system into something a small community will use and stars. The public companion to this section is [ROADMAP.md](../ROADMAP.md) — keep them in sync when scoping changes.
 
-### Theme: deeper engineering
-- [ ] Extend ground-truth set to 200 papers across all 15 themes
-- [ ] Property-based tests for ranking and classification logic
-- [ ] Run a **shadow prompt experiment** end-to-end: prompt v2 runs in parallel with v1 for 7 days; eval determines promotion
-- [ ] Add **confidence-based human-in-loop hook** — papers below threshold flagged in admin UI (a private Supabase Studio query is enough for V1)
-- [ ] Eval drift alerting — chart F1 over time; alert if drift > 5%
+### Quality / eval
+- [ ] **Ground-truth expansion 95 → 200 papers** — current set is thin in `cs.RO` + `cs.CR` (4d)
+- [ ] **Per-PR eval gate** — currently daily-only per [ADR-0008](../apps/web/content/docs/adr/0008-daily-cron-eval-gate.mdx); runs against a labelled subset for speed (2d)
+- [ ] **Drift detector** — alert when per-theme F1 dips week-on-week even if absolute is above floor (2d)
+- [ ] **Adversarial eval set** — 20 papers picked to stress classify (multi-domain, ambiguous, very-new themes) (2d)
+- [ ] **Property-based tests** for ranking + classification logic via hypothesis (2d)
+- [ ] **Shadow prompt experiment** — prompt v2 in parallel with v1 for 7 days; eval decides promotion (3d)
 
-### Theme: distribution
-- [ ] RSS feed (free, easy, drives subscribers)
-- [ ] Email digest via Resend free tier (3000 emails/mo)
-- [ ] Daily LinkedIn / Twitter post (manual at first; automate at V1.5)
-- [ ] Public Langfuse dashboard link from `/about`
+### Content / UX
+- [ ] **RSS feed at `/feed.xml`** — single biggest lever for organic readership (1d)
+- [ ] **Search over summaries** — pgvector already wired; semantic-search bar on `/papers` (3d)
+- [ ] **Filter UI on `/papers`** — by theme, by date range, by impact-score bucket (2d)
+- [ ] **`/papers/[id]` detail page** — full summary + classification audit trail + theme chips + arxiv link (1d)
+- [ ] **Theme trend charts** — paper count per theme per week on `/themes/[slug]` (2d)
+- [ ] **Per-author tracking** — if author appears 3+ times, dedicated page (2d)
+- [ ] **Mobile reading UX pass** (1d)
 
-### Theme: site improvements
-- [ ] Semantic search (pgvector cosine over `paper_embeddings`)
-- [ ] Theme trend charts (D3 or Recharts) — paper count per theme per week
-- [ ] Per-author tracking (if author appears 3+ times, dedicated page)
-- [ ] Mobile reading UX
+### Coverage
+- [ ] **Add `cs.RO`, `cs.CR`, `stat.ML` to crawl** — config-level; just bumps daily volume (0.5d)
+- [ ] **Tunable `DAILY_LIMIT` per category** — today it's global (0.5d)
 
-### Theme: operational maturity
-- [ ] Synthetic monitoring — separate GH Action runs `agent health` every 6h
-- [ ] Runbooks for: Supabase pause, eval regression, prompt rollback, cost spike
-- [ ] Backup verification — monthly script restores Supabase backup to local DB
-- [ ] Disaster recovery doc — what to do if Supabase / Vercel / GH each go down
+### Distribution
+- [ ] **Daily LinkedIn / Twitter post** — manual at first; automate at V1.5
+- [ ] **Public Langfuse dashboard link** from `/about` (0.5d)
+
+### Operational maturity
+- [ ] **Synthetic monitoring** — separate GH Action runs `arxivdigest health` every 6h (1d)
+- [ ] **Runbooks for**: Supabase pause, eval regression, prompt rollback, cost spike (already started in `/docs/runbooks`) (2d)
+- [ ] **Backup verification** — monthly script restores Supabase backup to a local DB (1d)
+- [ ] **Disaster recovery doc** — what to do if Supabase / Vercel / GH each go down (1d)
 
 ### Success metrics for V1
 - 100+ GitHub stars
@@ -132,22 +141,60 @@ Goal: turn the working system into something a small community will use and star
 - Eval F1 ≥ 0.90 sustained
 - Two blog posts published
 
-## V2 — Traction-dependent expansion (open-ended)
+## V2 — Personalisation + reach (3-6 months)
 
 **Only pursue if V1 metrics confirm appetite.**
 
-Possible directions:
+### Subscriptions
+- [ ] **Email digest** — Resend / Loops / Postmark; one-line-per-paper + click-through (4-5d)
+- [ ] **Custom themes** — user picks 3 themes, gets filtered digest (needs auth: Supabase Auth) (1w)
+- [ ] **Saved papers / reading list** — needs auth (3d after auth lands)
 
-| Direction | When to do | Effort |
-|---|---|---|
-| Custom themes for users | After 200+ subscribers ask | 2-3 weeks |
-| Multi-model leaderboard ("Claude vs Gemini classify") | When prompt v3+ stable | 1-2 weeks |
-| Active-learning loop (user feedback → re-rank) | After organic traffic established | 2-4 weeks |
-| Audio digest (podcast generation) | If text traction high | 2-3 weeks |
-| API access for downstream tools | When external dev community asks | 2 weeks |
-| Multi-domain (cs.RO, cs.CR, stat.ML) | If existing scope is saturated | 1 week per domain (small) |
-| Self-hosted LLM (vLLM on Runpod) | If Groq becomes paid + cost > $50/mo | 1-2 weeks |
-| Premium tier / sponsorship | Only after Apache-2.0-licensed core stable | indefinite |
+### Discoverability
+- [ ] **Public read-only API** — `/api/v1/papers?theme=X&date=Y` (2d)
+- [ ] **Newsletter cross-post automation** — auto-post daily digest to Substack (2d)
+- [ ] **Audio digest** — TTS over the top-3 papers; podcast feed (3-4d)
+- [ ] **Discord / Slack notifier** — webhook on digest publish (1d)
+
+### Quality V2
+- [ ] **Cross-encoder re-ranking** — small bge-reranker over the top-50 retrieved per query (3d)
+- [ ] **Paper relationships graph** — embeddings → kNN → "papers similar to X" sidebar (2d)
+- [ ] **Citation alert** — notify subscriber when paper X gets cited by anything in the crawl (1w)
+- [ ] **Multi-model leaderboard** — "Claude vs Gemini vs Groq classify" comparison page (1-2w)
+- [ ] **Active-learning loop** — user feedback signals re-rank weights (2-4w)
+
+## V3 — Production-grade ops (when scale or reliability demands it)
+
+- [ ] **Self-hosted LLM fallback** — vLLM on Runpod with cost-cap; triggered when Groq + Gemini both rate-limited (1w)
+- [ ] **Multi-region Batch / failover** — Frankfurt + Mumbai cutover (3d)
+- [ ] **Disaster-recovery runbook + automated backup** — Supabase PITR + S3 snapshot (2d)
+- [ ] **Cost telemetry dashboard** — Langfuse per-stage cost; surface on `/about` (1d)
+- [ ] **Premium tier / sponsorship** — only after Apache-2.0-licensed core is stable + 1k+ stars
+
+## Cross-cutting backlog (do alongside any phase)
+
+- [ ] **Per-paper "why this score" explainer** — LLM reasoning for impact score; high portfolio value (2d)
+- [ ] **LLM cache layer** — instructor-compat; cuts re-runs to ~0 cost (2d)
+- [ ] **Embedding-similarity dedup** — within a 7-day window (1d)
+- [ ] **CSP headers + gitleaks + trivy in CI + Renovate** — already noted as V1+ items in `security.mdx` (2d total)
+- [ ] **"Good first issue" labels + profile pin** — community on-ramp (0.5d)
+
+## What I'd actually prioritise next
+
+### If the goal is **portfolio impact** (current frame — job-switch context)
+
+1. **RSS feed + custom domain** — earliest readership signal; one day of work for outsized return
+2. **Per-paper "why this score" explainer** — pure AI-engineering story, screen-recordable for interviews
+3. **Semantic search** — uses pgvector you already have; one good demo screen worth more than 10 blog posts
+4. **Ground-truth expansion + per-PR eval gate** — the "this person takes evals seriously" signal hiring panels look for
+
+~3 weeks of evening work; gives 3 strong demos + a clear "I treat eval as production infra" narrative.
+
+### If the goal is **monetisation later**
+
+1. Email digest first (subscriber list = the asset)
+2. Then custom themes
+3. Then API access (paid-tier candidate)
 
 ## Risk register
 
