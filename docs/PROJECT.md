@@ -97,7 +97,7 @@ Things ArxivDigest will explicitly **not** do:
 | Engineer effort | ~3-4 weeks for V0, then ~2-4 hrs/week for maintenance | Side project alongside day job |
 | Operating regions | Global (CDN-served site, agent runs in US-East GH Actions) | No regulatory requirement |
 | Languages | English content only initially | Scope discipline |
-| Code license | MIT | Permissive open source |
+| Code license | Apache 2.0 | Permissive open source; attribution required via NOTICE |
 | Data license | Respects arxiv ToS — links to original paper, summaries are derivative work | Compliance |
 | Compute environment | GitHub Actions runner (Ubuntu, 4 CPU, 16GB RAM, ~30 min budget per run) | Free tier |
 
@@ -111,7 +111,7 @@ Things ArxivDigest will explicitly **not** do:
 | arxiv API changes / blocks scrapers | Low | Critical | Use official arxiv API (rate-respecting); maintain User-Agent identification |
 | Prompt regression breaks output quality | Medium | High | Eval CI gate; rollback via prompt versioning |
 | Hosting costs grow if it becomes popular | Low (free tiers generous) | Medium | Cost ceiling enforced in code; alert at 80% of any free tier |
-| Single-engineer bus factor | High | Medium | Open source, MIT-licensed, documented for handoff |
+| Single-engineer bus factor | High | Medium | Open source, Apache-2.0-licensed, documented for handoff |
 
 ## Out of scope for V0 (deferred)
 

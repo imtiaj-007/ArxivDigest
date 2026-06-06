@@ -6,7 +6,7 @@
 [![schema validity](https://img.shields.io/badge/dynamic/json?label=schema%20validity&query=%24.schema_validity_rate&url=https%3A%2F%2Fraw.githubusercontent.com%2Fimtiaj-007%2FArxivDigest%2Fmain%2Fevals%2Flast_report.json&color=brightgreen)](https://arxiv-digest-preview.vercel.app/about)
 [![keyword coverage](https://img.shields.io/badge/dynamic/json?label=kw%20coverage&query=%24.avg_keyword_coverage&url=https%3A%2F%2Fraw.githubusercontent.com%2Fimtiaj-007%2FArxivDigest%2Fmain%2Fevals%2Flast_report.json&color=brightgreen)](https://arxiv-digest-preview.vercel.app/about)
 [![cost](https://img.shields.io/badge/cost-%240%2Fmo-brightgreen)](https://arxiv-digest-preview.vercel.app/about)
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![license: Apache 2.0](https://img.shields.io/badge/license-Apache_2.0-blue)](./LICENSE)
 
 > Autonomous daily AI agent that scans new arxiv `cs.AI` / `cs.LG` / `cs.CL` submissions, produces structured TL;DRs, classifies them by theme, and ranks them by novelty + impact — published every morning, unattended, at $0/month.
 
@@ -100,4 +100,9 @@ Python 3.12 (uv + LangGraph + instructor + Groq + sentence-transformers) → Sup
 
 ## License
 
-MIT (see [LICENSE](./LICENSE))
+Apache License 2.0 — see [LICENSE](./LICENSE).
+
+**Attribution required.** If you fork, copy, or build on this code, you must
+retain the [NOTICE](./NOTICE) file and credit the original project at
+[github.com/imtiaj-007/ArxivDigest](https://github.com/imtiaj-007/ArxivDigest).
+Pull requests welcome — please don't strip attribution.
