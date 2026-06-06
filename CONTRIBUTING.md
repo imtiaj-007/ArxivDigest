@@ -75,6 +75,15 @@ pnpm build         # production build (catches type errors)
 pnpm dev           # local dev server on :3000
 ```
 
+### UI components — which folder?
+
+| Folder | When to put a component here |
+|---|---|
+| `apps/web/components/ui/` | shadcn / base-nova primitives. Buttons, badges, cards — non-animated reusables. |
+| `apps/web/components/` (root) | Site-specific composed components. `PaperCard`, `EvalMetricsCard`, etc. |
+| `apps/web/components/aceternity/` | Motion-heavy showcase / narrative pieces forked from aceternity.com. Read [the folder's README](./apps/web/components/aceternity/README.md) before adding — there are house rules around `prefers-reduced-motion`, server-vs-client boundary, and one-motion-moment-per-page. |
+| `packages/ui/src/` | Workspace primitives shared across apps. Only add here if a second app needs the component. |
+
 ### Pre-commit
 
 ```sh
