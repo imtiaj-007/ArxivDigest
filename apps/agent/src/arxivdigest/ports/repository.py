@@ -42,6 +42,14 @@ class Repository(Protocol):
         """Insert a 'running' row in ``runs`` and return its id."""
         ...
 
+    async def sweep_stale_running(self, max_age_minutes: int = 60) -> list[str]:
+        """Mark abandoned 'running' rows as failed; return swept ids.
+
+        Recovers from SIGKILL (CI timeout, runner preemption) where the
+        agent's exception handler never landed a terminal status.
+        """
+        ...
+
     async def complete_run(
         self,
         run_id: str,
