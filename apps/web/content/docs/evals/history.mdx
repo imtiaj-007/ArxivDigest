@@ -30,16 +30,20 @@ import { Activity, ScrollText, Workflow } from "lucide-react";
 | **Papers** | `processed/total` — anything less than total means an LLM call bulkheaded |
 | **Commit** | Git SHA the eval ran against (links to GitHub if present) |
 
-Click any column header to sort. Newest-first is the default.
+Click any column header to sort. Newest-first is the default. The chevron
+at the start of each row expands the **per-theme F1 breakdown** for that
+run (green ≥ 0.85, amber &lt; 0.75) — populated for runs from
+2026-06-06 onwards; older rows show a "not recorded" message.
+
+The sparkline above the table tracks micro + macro F1 across all runs
+(oldest → newest); the dashed line is the 0.80 floor enforced by
+`--fail-on-regression` in CI.
 
 ## What this isn't (yet)
 
-- **Trendline / sparkline** — the table is the source; a chart would be nice
-  once there are 20+ rows. Today the cron adds ~1 row per day.
-- **Per-theme F1 over time** — only the headline numbers are appended to
-  `history.jsonl`; the full per-theme breakdown lives only in
-  `last_report.json`. If trends per theme become interesting, the append
-  step expands.
+- **Statistical change-point detection** — the sparkline above is a visual
+  cue, not a regression test. The `--fail-on-regression` baseline gate in
+  `daily-digest.yml` is the actual contract.
 
 ## Cross-references
 

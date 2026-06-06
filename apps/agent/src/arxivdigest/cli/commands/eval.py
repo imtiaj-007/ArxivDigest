@@ -132,6 +132,13 @@ def _append_history(report: EvalReport) -> None:
         "micro_f1": round(report.classification["micro_f1"], 4),
         "macro_f1": round(report.classification["macro_f1"], 4),
         "avg_keyword_coverage": round(report.avg_keyword_coverage, 4),
+        # Per-theme F1 lets the history page show theme-level trends without
+        # round-tripping through last_report.json (which only holds the
+        # most recent run). Sorted by key for stable diffs across commits.
+        "per_theme_f1": {
+            theme: round(score, 4)
+            for theme, score in sorted(report.per_theme_f1.items())
+        },
     }
     with HISTORY_PATH.open("a") as f:
         f.write(json.dumps(line) + "\n")
