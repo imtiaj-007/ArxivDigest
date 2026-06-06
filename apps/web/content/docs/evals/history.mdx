@@ -12,9 +12,10 @@ import { Activity, ScrollText, Workflow } from "lucide-react";
 <Callout type="info" title="How this page is populated">
   Each `arxivdigest eval` run appends a one-line JSON summary to
   `evals/metrics/history.jsonl` (see [`cli/commands/eval.py`](https://github.com/imtiaj-007/ArxivDigest/blob/main/apps/agent/src/arxivdigest/cli/commands/eval.py)).
-  This page reads that file at build time, so the history only grows when
-  the JSONL is committed to `main`. Local runs alone won't show up — they
-  need to land in a commit for the next deploy to pick them up.
+  This page reads that file at build time. The daily cron's final step
+  commits the new line back to `main` (with `[skip ci]`) so each cron run
+  shows up here after the next Vercel build — usually within a minute.
+  Local runs need to be committed manually to land on the deployed page.
 </Callout>
 
 ## Reading the columns
@@ -34,16 +35,11 @@ Click any column header to sort. Newest-first is the default.
 ## What this isn't (yet)
 
 - **Trendline / sparkline** — the table is the source; a chart would be nice
-  once there are 20+ rows. Today we have ~1 row per week.
+  once there are 20+ rows. Today the cron adds ~1 row per day.
 - **Per-theme F1 over time** — only the headline numbers are appended to
   `history.jsonl`; the full per-theme breakdown lives only in
   `last_report.json`. If trends per theme become interesting, the append
   step expands.
-- **CI-side commit of `history.jsonl`** — the daily cron currently runs the
-  eval gate on ephemeral disk; the JSONL append doesn't persist back. Until
-  that's wired (CI bot or workflow artifact), the page grows only when the
-  file is committed manually after a local run. Tracked under "Persistent
-  history across CI runs" on the [Eval Harness overview](/docs/evals).
 
 ## Cross-references
 

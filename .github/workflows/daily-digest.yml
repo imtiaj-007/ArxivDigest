@@ -24,6 +24,10 @@ jobs:
     # backoff (up to 5 attempts × 30s), LLM tail latency, and the eval gate.
     # Cap still prevents a runaway loop from burning the full GH Actions budget.
     timeout-minutes: 60
+    # Needed for the final step to commit + push `evals/last_report.json` +
+    # `evals/metrics/history.jsonl` back to main. Scoped to contents only.
+    permissions:
+      contents: write
     # Gates all secrets/vars below to the `production` GH environment.
     # In repo Settings → Environments → production, lock to main branch and
     # populate the secrets/vars listed in docs/CI_SECRETS.md.
@@ -93,9 +97,47 @@ jobs:
           echo
 
       # Re-classify the ground-truth set and fail the workflow if any metric
-      # dropped below evals/baseline.json. Runs LAST so a regression doesn't
-      # block today's digest from publishing — the day's data is already out,
-      # this step just flags quality drift loud enough to investigate.
+      # dropped below evals/baseline.json. The eval CLI writes last_report.json
+      # + appends history.jsonl BEFORE the baseline check, so even a regression
+      # run leaves both artifacts on disk for the next step to persist.
       - name: Eval regression gate
         if: success()
         run: uv run arxivdigest eval --fail-on-regression
+
+      # Persist eval artifacts back to main so they survive the ephemeral
+      # runner. `last_report.json` drives the build-time numbers on /about +
+      # /docs/evals; `history.jsonl` drives /docs/evals/history. Runs on both
+      # success and failure (eval gate exiting non-zero still leaves data
+      # worth keeping) but not on cancellation. The [skip ci] tag prevents
+      # this bot push from re-triggering CI workflows.
+      - name: Persist eval artifacts to main
+        if: success() || failure()
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ ! -f evals/last_report.json ] && [ ! -f evals/metrics/history.jsonl ]; then
+            echo "No eval artifacts on disk — skipping."
+            exit 0
+          fi
+          git config user.name "arxivdigest-bot"
+          git config user.email "bot@arxivdigest.local"
+          git add evals/last_report.json evals/metrics/history.jsonl 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No eval artifact changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(evals): persist daily-digest eval artifacts [skip ci]"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if git rebase origin/main && git push origin HEAD:main; then
+              echo "Pushed eval artifacts on attempt $attempt."
+              exit 0
+            fi
+            echo "Push attempt $attempt failed; retrying after ${attempt}s..."
+            git rebase --abort 2>/dev/null || true
+            sleep "$attempt"
+          done
+          echo "Failed to push eval artifacts after 3 attempts." >&2
+          exit 1
