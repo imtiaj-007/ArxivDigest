@@ -5,9 +5,13 @@ import { sql } from "drizzle-orm";
 import { parseSummary } from "@/lib/papers";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
-// Rebuild the feed at most every hour; new digests land once a day so this
-// is plenty fresh and keeps the route off the DB on every reader poll.
-export const revalidate = 3600;
+// Render on demand — Next tries to prerender any route without explicit
+// dynamic + the build server has no DATABASE_URL, so without this CI fails.
+// Freshness comes from the Cache-Control header below: Vercel's edge CDN
+// caches the response for 1 hour and serves stale for up to a day while
+// revalidating in the background, so readers still only hit the DB ~once
+// per hour even though the route itself is dynamic.
+export const dynamic = "force-dynamic";
 
 const FEED_PATH = "/feed.xml";
 const ITEM_LIMIT = 50;
