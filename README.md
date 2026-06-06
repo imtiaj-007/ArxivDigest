@@ -22,6 +22,7 @@
   <a href="https://arxiv-digest-preview.vercel.app">🌐&nbsp;<strong>Live site</strong></a> &nbsp;·&nbsp;
   <a href="https://arxiv-digest-preview.vercel.app/docs">📖&nbsp;<strong>Docs</strong></a> &nbsp;·&nbsp;
   <a href="https://arxiv-digest-preview.vercel.app/docs/evals/history">📊&nbsp;<strong>Eval history</strong></a> &nbsp;·&nbsp;
+  <a href="https://arxiv-digest-preview.vercel.app/feed.xml">📡&nbsp;<strong>RSS</strong></a> &nbsp;·&nbsp;
   <a href="https://arxiv-digest-preview.vercel.app/status">🟢&nbsp;<strong>Status</strong></a> &nbsp;·&nbsp;
   <a href="./ROADMAP.md">🗺&nbsp;<strong>Roadmap</strong></a>
 </p>
@@ -121,6 +122,7 @@ Runs autonomously, **$0/month** on free tiers, every LLM call traced in Langfuse
 | `/status` | 30-day run grid + recent runs table |
 | `/about` | Stack, cost ledger, live quality metrics |
 | `/docs/*` | Engineering docs: methodology · architecture · stack · prompts · testing · evals · observability · security · runbooks · ADRs |
+| `/feed.xml` | **RSS 2.0** feed of the 50 most recent ranked papers; auto-discovered via `<link rel="alternate">` |
 
 ## 🗺 Roadmap
 

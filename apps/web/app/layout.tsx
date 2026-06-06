@@ -3,6 +3,7 @@ import "./globals.css";
 import { Geist, Geist_Mono } from "next/font/google";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import { cn } from "@/lib/utils";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
@@ -10,6 +11,12 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 export const metadata: Metadata = {
   title: "ArxivDigest",
   description: "Autonomous daily AI digest of arxiv papers",
+  metadataBase: new URL(SITE_URL),
+  alternates: {
+    types: {
+      "application/rss+xml": [{ url: "/feed.xml", title: `${SITE_NAME} — RSS` }],
+    },
+  },
 };
 
 export default function RootLayout({

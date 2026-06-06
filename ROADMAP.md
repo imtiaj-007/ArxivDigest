@@ -48,7 +48,7 @@ Turn the working system into something worth subscribing to.
 
 ### Content / UX
 
-- ⬜ **RSS feed at `/feed.xml`** &nbsp;← single biggest readership lever
+- ✅ **RSS feed at `/feed.xml`** — 50 most recent ranked papers, auto-discovered via `<link rel="alternate">`
 - ⬜ Semantic search bar over summaries (pgvector already wired)
 - ⬜ Filter UI on `/papers` — theme, date range, impact-score bucket
 - ⬜ `/papers/[id]` detail page — summary + classification audit trail + theme chips + arxiv link

@@ -112,7 +112,7 @@ Goal: turn the working system into something a small community will use and star
 - [ ] **Shadow prompt experiment** — prompt v2 in parallel with v1 for 7 days; eval decides promotion (3d)
 
 ### Content / UX
-- [ ] **RSS feed at `/feed.xml`** — single biggest lever for organic readership (1d)
+- [x] **RSS feed at `/feed.xml`** — single biggest lever for organic readership. **SHIPPED 2026-06-06.** 50 most recent ranked papers; auto-discovered via `<link rel="alternate">`; CDATA-wrapped HTML descriptions with structured TL;DR (problem/approach/result/why_it_matters); `dc:creator` author lines + theme `<category>` tags; 1h ISR + 1y stale-while-revalidate.
 - [ ] **Search over summaries** — pgvector already wired; semantic-search bar on `/papers` (3d)
 - [ ] **Filter UI on `/papers`** — by theme, by date range, by impact-score bucket (2d)
 - [ ] **`/papers/[id]` detail page** — full summary + classification audit trail + theme chips + arxiv link (1d)
