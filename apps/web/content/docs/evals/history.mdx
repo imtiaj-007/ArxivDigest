@@ -1,0 +1,54 @@
+---
+title: Eval History
+description: Every eval run ever recorded — F1s, schema validity, keyword coverage, newest first. Sortable + paginated.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Activity, ScrollText, Workflow } from "lucide-react";
+
+<EvalHistoryTable />
+
+<Callout type="info" title="How this page is populated">
+  Each `arxivdigest eval` run appends a one-line JSON summary to
+  `evals/metrics/history.jsonl` (see [`cli/commands/eval.py`](https://github.com/imtiaj-007/ArxivDigest/blob/main/apps/agent/src/arxivdigest/cli/commands/eval.py)).
+  This page reads that file at build time, so the history only grows when
+  the JSONL is committed to `main`. Local runs alone won't show up — they
+  need to land in a commit for the next deploy to pick them up.
+</Callout>
+
+## Reading the columns
+
+| Column | What |
+|---|---|
+| **When** | UTC timestamp the run finished (ISO-8601, minute precision) |
+| **Micro F1** | Pooled (paper, theme) agreement with ground truth — green ≥ 0.80 |
+| **Macro F1** | Per-theme F1 averaged — green ≥ 0.80 |
+| **Schema** | Fraction of LLM calls that parsed into Pydantic first try — green ≥ 0.95 |
+| **Kw cov** | Avg fraction of expected-keyword strings present in stored summaries — green ≥ 0.65 |
+| **Papers** | `processed/total` — anything less than total means an LLM call bulkheaded |
+| **Commit** | Git SHA the eval ran against (links to GitHub if present) |
+
+Click any column header to sort. Newest-first is the default.
+
+## What this isn't (yet)
+
+- **Trendline / sparkline** — the table is the source; a chart would be nice
+  once there are 20+ rows. Today we have ~1 row per week.
+- **Per-theme F1 over time** — only the headline numbers are appended to
+  `history.jsonl`; the full per-theme breakdown lives only in
+  `last_report.json`. If trends per theme become interesting, the append
+  step expands.
+- **CI-side commit of `history.jsonl`** — the daily cron currently runs the
+  eval gate on ephemeral disk; the JSONL append doesn't persist back. Until
+  that's wired (CI bot or workflow artifact), the page grows only when the
+  file is committed manually after a local run. Tracked under "Persistent
+  history across CI runs" on the [Eval Harness overview](/docs/evals).
+
+## Cross-references
+
+<Cards>
+  <Card href="/docs/evals" icon={<Workflow className="text-fd-primary" />} title="Eval Harness overview" description="What the harness measures + how it runs." />
+  <Card href="/about#quality" icon={<Activity className="text-fd-primary" />} title="/about → Quality" description="Latest single-run numbers on the home site." />
+  <Card href="/docs/adr/0008-daily-cron-eval-gate" icon={<ScrollText className="text-fd-primary" />} title="ADR-0008" description="Why the gate is daily, not per-PR." />
+</Cards>

@@ -20,7 +20,10 @@ jobs:
   digest:
     name: Run daily digest
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Typical runs land in 14-20 min. 60 leaves ~3x headroom for arxiv 429
+    # backoff (up to 5 attempts × 30s), LLM tail latency, and the eval gate.
+    # Cap still prevents a runaway loop from burning the full GH Actions budget.
+    timeout-minutes: 60
     # Gates all secrets/vars below to the `production` GH environment.
     # In repo Settings → Environments → production, lock to main branch and
     # populate the secrets/vars listed in docs/CI_SECRETS.md.

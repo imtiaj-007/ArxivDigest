@@ -1,11 +1,11 @@
 ---
-title: Eval Harness
+title: Overview
 description: How ArxivDigest measures its own quality — 95 hand-labeled ground-truth papers, multi-label F1, schema validity, keyword coverage. Runs as the daily cron's last step.
 ---
 
 import { Callout } from "fumadocs-ui/components/callout";
 import { Card, Cards } from "fumadocs-ui/components/card";
-import { BookOpen, GitBranch, ScrollText, Tags, TerminalSquare, Workflow } from "lucide-react";
+import { BookOpen, GitBranch, History, ScrollText, Tags, TerminalSquare, Workflow } from "lucide-react";
 
 <EvalMetricsCard />
 
@@ -58,8 +58,10 @@ Per paper in `ground_truth.jsonl`:
 5. Bulkhead: any LLM failure logs + skips that paper (counts toward
    `schema_validity_rate`).
 
-Aggregate → JSON report at `evals/last_report.json` + append a compact line
-to `evals/metrics/history.jsonl` for trend tracking.
+Aggregate → JSON report at `evals/last_report.json` (overwritten each run)
++ append a compact line to `evals/metrics/history.jsonl` for trend
+tracking. The full back-catalogue is browsable on the
+[**Eval History page**](/docs/evals/history).
 
 ## CI integration
 
@@ -126,13 +128,16 @@ stochastic decoding at temp=0.2, which is why the baseline floors leave
   stage; we don't have one (every crawled paper gets summarized). Drop
   the metric unless the filter is added.
 - **Per-PR eval gate** — currently daily-only (see ADR-0008).
-- **Persistent history across CI runs** — `history.jsonl` lives on the
-  ephemeral runner disk. Future enhancement: commit it back via CI bot or
-  upload as a workflow artifact.
+- **Persistent history across CI runs** — `history.jsonl` is rendered on
+  the [Eval History page](/docs/evals/history), but the daily cron runs on
+  ephemeral runner disk and doesn't currently commit the appended line
+  back to `main`. Until that's wired (CI bot or workflow artifact), the
+  page only grows when the file is committed manually after a local run.
 
 ## Cross-references
 
 <Cards>
+  <Card href="/docs/evals/history" icon={<History className="text-fd-primary" />} title="Eval History" description="Every recorded run — sortable + paginated." />
   <Card href="/docs/methodology" icon={<Workflow className="text-fd-primary" />} title="Methodology" description="The pipeline that the eval grades." />
   <Card href="/docs/themes" icon={<Tags className="text-fd-primary" />} title="Theme taxonomy" description="What classify chooses from." />
   <Card href="/docs/testing" icon={<TerminalSquare className="text-fd-primary" />} title="Testing" description="The broader test pyramid." />

@@ -81,17 +81,17 @@ Goal: public site live, daily cron firing, full observability stack working.
 
 Goal: eval harness gates quality; project reads as portfolio-grade.
 
-- [ ] **Ground-truth set** — 50 papers manually labeled: relevance Y/N, themes assigned, "good summary" examples
-- [ ] **Eval harness** — `agent eval` runs classification F1, summary BLEU/ROUGE, regression-checked against baseline
-- [ ] **Eval CI gate** — PR check: F1 must not drop > 5% from baseline
-- [ ] **Architecture diagram** — drawn in Excalidraw, embedded in README + ARCHITECTURE.md
-- [ ] **README polish** — pitch in 30 seconds, badges, demo screenshot, link to live site
-- [ ] **README badges** — build status, coverage %, Vercel deploy status, latest eval F1
-- [ ] **ADRs written** — at least the first 4 (pure batch, hexagonal, Supabase, uv)
+- [x] **Ground-truth set** — 95 papers hand-labeled (themes + summary keywords) via `arxivdigest label`
+- [x] **Eval harness** — `arxivdigest eval` runs multi-label F1 (micro/macro/per-theme), schema validity, keyword coverage
+- [x] **Eval CI gate** — daily-cron step (not per-PR — see [ADR-0008](../apps/web/content/docs/adr/0008-daily-cron-eval-gate.mdx)); fails workflow if any metric drops below `evals/baseline.json` floors
+- [x] **Architecture diagram** — Mermaid in `/docs/architecture` (system overview, 6-stage pipeline, ER schema, daily sequence)
+- [x] **README polish** — pitch + 6 shields.io badges (build, CI, micro_f1, schema, kw_cov, license)
+- [x] **README badges** — daily-digest status, CI status, eval F1, schema, kw_cov, license
+- [x] **ADRs written** — 8 ADRs surfaced as MDX at `/docs/adr` (pure-batch, Supabase, uv, hexagonal, Vercel, local-BGE, DB-as-checkpoint, daily-cron eval gate)
 - [ ] **Architecture deep-dive blog post** — published on dev.to / Medium / Substack
 - [ ] **Demo video** — 90-second Loom: cron firing → traces in Langfuse → site updating
 - [ ] **GitHub Project board** — public roadmap visible from README
-- [ ] **License (MIT) + CONTRIBUTING.md + CODE_OF_CONDUCT.md**
+- [ ] **License (MIT) + CONTRIBUTING.md + CODE_OF_CONDUCT.md** — License done (MIT); CONTRIBUTING/CODE_OF_CONDUCT pending
 - [ ] **Profile pin** — repo pinned on personal GitHub profile
 
 **Exit criterion (V0 done):** 14 consecutive days of green daily runs; eval F1 sustained ≥ 0.85; one published writeup; pinned on profile.
@@ -190,25 +190,25 @@ Reasons to pause / wind down ArxivDigest, listed honestly so they don't surprise
 ## V0 weekly checklist (printable)
 
 ### Week 1
-- [ ] Repo + tooling + signups
-- [ ] Domain models + ports
-- [ ] First adapter (Groq) + first stage (summarize) working on 5 papers
-- [ ] Schema + migration in DB
+- [x] Repo + tooling + signups
+- [x] Domain models + ports
+- [x] First adapter (Groq) + first stage (summarize) working on 5 papers
+- [x] Schema + migration in DB
 
 ### Week 2
-- [ ] All stages
-- [ ] LangGraph orchestration + checkpointing
-- [ ] Idempotency + DLQ + rate limits
-- [ ] Local end-to-end on ~40 papers
+- [x] All stages
+- [x] LangGraph orchestration + checkpointing
+- [x] Idempotency + DLQ + rate limits
+- [x] Local end-to-end on ~40 papers
 
 ### Week 3
-- [ ] Next.js site + Vercel + cron
-- [ ] Langfuse + Sentry wired
-- [ ] Status page + about page
-- [ ] First production daily run
+- [x] Next.js site + Vercel + cron
+- [x] Langfuse + Sentry wired
+- [x] Status page + about page
+- [x] First production daily run
 
 ### Week 4
-- [ ] Eval harness + ground truth
-- [ ] CI gates + ADRs + diagrams
+- [x] Eval harness + ground truth
+- [x] CI gates + ADRs + diagrams (Mermaid in `/docs/architecture`)
 - [ ] Blog post + demo video + profile pin
 - [ ] 14-day consecutive green runs (rolls into V1)
