@@ -91,7 +91,7 @@ Goal: eval harness gates quality; project reads as portfolio-grade.
 - [ ] **Architecture deep-dive blog post** — published on dev.to / Medium / Substack
 - [ ] **Demo video** — 90-second Loom: cron firing → traces in Langfuse → site updating
 - [ ] **GitHub Project board** — public roadmap visible from README
-- [ ] **License (MIT) + CONTRIBUTING.md + CODE_OF_CONDUCT.md** — License done (MIT); CONTRIBUTING/CODE_OF_CONDUCT pending
+- [x] **License (Apache 2.0) + CONTRIBUTING.md + CODE_OF_CONDUCT.md** — License + NOTICE done (Apache 2.0, attribution required); CONTRIBUTING/CODE_OF_CONDUCT pending
 - [ ] **Profile pin** — repo pinned on personal GitHub profile
 
 **Exit criterion (V0 done):** 14 consecutive days of green daily runs; eval F1 sustained ≥ 0.85; one published writeup; pinned on profile.
@@ -147,13 +147,13 @@ Possible directions:
 | API access for downstream tools | When external dev community asks | 2 weeks |
 | Multi-domain (cs.RO, cs.CR, stat.ML) | If existing scope is saturated | 1 week per domain (small) |
 | Self-hosted LLM (vLLM on Runpod) | If Groq becomes paid + cost > $50/mo | 1-2 weeks |
-| Premium tier / sponsorship | Only after MIT-licensed core stable | indefinite |
+| Premium tier / sponsorship | Only after Apache-2.0-licensed core stable | indefinite |
 
 ## Risk register
 
 | Risk | Likelihood | Impact | Mitigation | Status |
 |---|---|---|---|---|
-| Solo bus factor | High | Medium | MIT license; documented; ADRs; runbooks | Mitigated by V0 docs |
+| Solo bus factor | High | Medium | Apache 2.0 license; documented; ADRs; runbooks | Mitigated by V0 docs |
 | Groq free tier tightened mid-V1 | Medium | High | Gemini failover proven in V0; Cerebras as 3rd | Mitigated |
 | Supabase pause during gap | Low (daily cron) | Medium | Cron pings DB daily | Mitigated |
 | Prompt regression breaks output | Medium | High | Eval CI gate blocks merges | Mitigated in V0 W4 |
@@ -185,7 +185,7 @@ Reasons to pause / wind down ArxivDigest, listed honestly so they don't surprise
 - Job switch lands; new role consumes all evening time → pause maintenance, leave docs clear
 - Eval F1 starts trending down faster than fixes can keep up → step back, redesign prompts
 - Free tiers tighten across the board → publish cost analysis, ask if community wants to fund or fork
-- Personal life shift → MIT license means anyone can pick it up
+- Personal life shift → Apache 2.0 license means anyone can pick it up (with attribution)
 
 ## V0 weekly checklist (printable)
 

@@ -63,6 +63,10 @@ Aggregate → JSON report at `evals/last_report.json` (overwritten each run)
 tracking. The full back-catalogue is browsable on the
 [**Eval History page**](/docs/evals/history).
 
+On the daily cron, the final workflow step commits both artifacts back to
+`main` with a `[skip ci]` message — so each cron run shows up on the
+history page after the next Vercel build (~1 min later).
+
 ## CI integration
 
 `daily-digest.yml` runs as the last step:
@@ -128,11 +132,10 @@ stochastic decoding at temp=0.2, which is why the baseline floors leave
   stage; we don't have one (every crawled paper gets summarized). Drop
   the metric unless the filter is added.
 - **Per-PR eval gate** — currently daily-only (see ADR-0008).
-- **Persistent history across CI runs** — `history.jsonl` is rendered on
-  the [Eval History page](/docs/evals/history), but the daily cron runs on
-  ephemeral runner disk and doesn't currently commit the appended line
-  back to `main`. Until that's wired (CI bot or workflow artifact), the
-  page only grows when the file is committed manually after a local run.
+- **Per-theme F1 over time** — only headline numbers are appended to
+  `history.jsonl`; the full per-theme breakdown lives only in
+  `last_report.json`. If trends per theme become interesting, the append
+  step expands.
 
 ## Cross-references
 

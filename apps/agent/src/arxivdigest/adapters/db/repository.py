@@ -93,6 +93,20 @@ SET completed_at = now(),
 WHERE id = $1
 """
 
+# Catches rows where the agent process was SIGKILLed (ci timeout, runner
+# preemption) without giving the try/except in run.py a chance to land a
+# terminal status. The concurrency group on daily-digest.yml serializes runs
+# so there is no risk of clobbering a legitimately-in-flight row.
+_SWEEP_STALE_RUNS = """
+UPDATE runs
+SET completed_at = now(),
+    status = 'failed',
+    error_summary = 'stale (no heartbeat — likely ci timeout or sigkill)'
+WHERE status = 'running'
+  AND started_at < now() - make_interval(mins => $1)
+RETURNING id
+"""
+
 _FETCH_RECENT_RUNS = """
 SELECT id, started_at, completed_at, status,
        papers_crawled, papers_summarized, papers_classified,
@@ -260,6 +274,25 @@ class PostgresRepository:
         run_id = str(value)
         log.info("run.started", run_id=run_id)
         return run_id
+
+    async def sweep_stale_running(self, max_age_minutes: int = 60) -> list[str]:
+        """Mark abandoned 'running' rows as failed.
+
+        Returns the swept run ids so the caller can log them. Safe to call
+        unconditionally at the start of a new run — the daily-digest
+        concurrency group prevents racing a legitimately in-flight row.
+        """
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(_SWEEP_STALE_RUNS, max_age_minutes)
+        swept = [str(r["id"]) for r in rows]
+        if swept:
+            log.warning(
+                "run.swept_stale",
+                count=len(swept),
+                run_ids=swept,
+                max_age_minutes=max_age_minutes,
+            )
+        return swept
 
     async def complete_run(
         self,

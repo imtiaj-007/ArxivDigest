@@ -51,6 +51,9 @@ async def _run(categories: list[str], limit: int) -> PipelineState:
         pool_lifespan(settings.database_url) as pool,
     ):
         repository = PostgresRepository(pool)
+        # SIGKILL (CI timeout, runner preemption) bypasses the try/except
+        # below — sweep any prior abandoned row before starting fresh.
+        await repository.sweep_stale_running()
         run_id = await repository.start_run()
         try:
             final = await run_pipeline(

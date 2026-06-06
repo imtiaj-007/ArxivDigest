@@ -5,6 +5,7 @@ description = "Autonomous daily AI agent that summarizes arxiv papers"
 authors = [
     { name = "SK Imtiaj Uddin", email = "imtiaj.kol@gmail.com" }
 ]
+license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [
     "langgraph>=0.2",
