@@ -72,6 +72,27 @@ class Repository(Protocol):
         """Return runs started within the last ``days`` days, newest first."""
         ...
 
+    async def insert_eval_run(
+        self,
+        *,
+        ran_at: datetime.datetime,
+        git_sha: str | None,
+        processed: int,
+        total: int,
+        micro_f1: float,
+        macro_f1: float,
+        schema_validity_rate: float,
+        avg_keyword_coverage: float,
+        per_theme_f1: dict[str, float],
+        per_paper: list[dict[str, object]] | None = None,
+    ) -> str:
+        """Persist one eval run row; return the new row id.
+
+        Backs ``/docs/evals/history`` + the ``/about`` quality numbers + the
+        README badge endpoints. Replaces the JSONL-in-git pattern.
+        """
+        ...
+
     async def fetch_unembedded(self, limit: int) -> list[tuple[str, str, str]]:
         """Return up to ``limit`` (arxiv_id, title, abstract) for papers lacking an embedding."""
         ...

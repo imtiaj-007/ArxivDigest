@@ -8,6 +8,7 @@ rank stages populate them later.
 from __future__ import annotations
 
 import datetime
+import json
 import uuid
 from collections.abc import Sequence
 
@@ -114,6 +115,20 @@ SELECT id, started_at, completed_at, status,
 FROM runs
 WHERE started_at > now() - make_interval(days => $1)
 ORDER BY started_at DESC
+"""
+
+# Replaces the JSONL-in-git pattern. Each `arxivdigest eval` run inserts one
+# row here; /docs/evals/history reads from this table at request time (ISR).
+# `per_paper` is the heavy per-paper detail (~10-50 KB as JSONB); nullable so
+# rows backfilled from the old JSONL summary work without it.
+_INSERT_EVAL_RUN = """
+INSERT INTO eval_runs (
+    ran_at, git_sha, processed, total,
+    micro_f1, macro_f1, schema_validity_rate, avg_keyword_coverage,
+    per_theme_f1, per_paper
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb)
+RETURNING id
 """
 
 _FETCH_UNEMBEDDED = """
@@ -322,6 +337,49 @@ class PostgresRepository:
         async with self._pool.acquire() as conn:
             await conn.execute(_FAIL_RUN, uuid.UUID(run_id), error_summary)
         log.info("run.failed", run_id=run_id, error=error_summary[:200])
+
+    async def insert_eval_run(
+        self,
+        *,
+        ran_at: datetime.datetime,
+        git_sha: str | None,
+        processed: int,
+        total: int,
+        micro_f1: float,
+        macro_f1: float,
+        schema_validity_rate: float,
+        avg_keyword_coverage: float,
+        per_theme_f1: dict[str, float],
+        per_paper: list[dict[str, object]] | None = None,
+    ) -> str:
+        """Persist one eval result. Returns the row id.
+
+        Best-effort callers (the daily cron) should wrap in try/except so a
+        missing-table or transient connection failure doesn't fail the eval
+        gate — the JSONL append is still on disk as the fallback record.
+        """
+        async with self._pool.acquire() as conn:
+            value = await conn.fetchval(
+                _INSERT_EVAL_RUN,
+                ran_at,
+                git_sha,
+                processed,
+                total,
+                micro_f1,
+                macro_f1,
+                schema_validity_rate,
+                avg_keyword_coverage,
+                json.dumps(per_theme_f1),
+                json.dumps(per_paper) if per_paper is not None else None,
+            )
+        eval_run_id = str(value)
+        log.info(
+            "eval.persisted",
+            eval_run_id=eval_run_id,
+            ran_at=ran_at.isoformat(),
+            micro_f1=micro_f1,
+        )
+        return eval_run_id
 
     async def fetch_recent_runs(self, days: int) -> list[Run]:
         async with self._pool.acquire() as conn:
