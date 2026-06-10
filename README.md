@@ -12,10 +12,10 @@
 </p>
 
 <p>
-  <a href="https://arxiv-digest-preview.vercel.app/about"><img alt="micro F1" src="https://img.shields.io/badge/dynamic/json?label=micro%20F1&query=%24.classification.micro_f1&url=https%3A%2F%2Fraw.githubusercontent.com%2Fimtiaj-007%2FArxivDigest%2Fmain%2Fevals%2Flast_report.json&color=brightgreen"></a>
-  <a href="https://arxiv-digest-preview.vercel.app/about"><img alt="macro F1" src="https://img.shields.io/badge/dynamic/json?label=macro%20F1&query=%24.classification.macro_f1&url=https%3A%2F%2Fraw.githubusercontent.com%2Fimtiaj-007%2FArxivDigest%2Fmain%2Fevals%2Flast_report.json&color=brightgreen"></a>
-  <a href="https://arxiv-digest-preview.vercel.app/about"><img alt="schema validity" src="https://img.shields.io/badge/dynamic/json?label=schema%20validity&query=%24.schema_validity_rate&url=https%3A%2F%2Fraw.githubusercontent.com%2Fimtiaj-007%2FArxivDigest%2Fmain%2Fevals%2Flast_report.json&color=brightgreen"></a>
-  <a href="https://arxiv-digest-preview.vercel.app/about"><img alt="keyword coverage" src="https://img.shields.io/badge/dynamic/json?label=kw%20coverage&query=%24.avg_keyword_coverage&url=https%3A%2F%2Fraw.githubusercontent.com%2Fimtiaj-007%2FArxivDigest%2Fmain%2Fevals%2Flast_report.json&color=brightgreen"></a>
+  <a href="https://arxiv-digest-preview.vercel.app/about"><img alt="micro F1" src="https://img.shields.io/endpoint?url=https%3A%2F%2Farxiv-digest-preview.vercel.app%2Fapi%2Fbadges%2Fmicro-f1"></a>
+  <a href="https://arxiv-digest-preview.vercel.app/about"><img alt="macro F1" src="https://img.shields.io/endpoint?url=https%3A%2F%2Farxiv-digest-preview.vercel.app%2Fapi%2Fbadges%2Fmacro-f1"></a>
+  <a href="https://arxiv-digest-preview.vercel.app/about"><img alt="schema validity" src="https://img.shields.io/endpoint?url=https%3A%2F%2Farxiv-digest-preview.vercel.app%2Fapi%2Fbadges%2Fschema-validity"></a>
+  <a href="https://arxiv-digest-preview.vercel.app/about"><img alt="keyword coverage" src="https://img.shields.io/endpoint?url=https%3A%2F%2Farxiv-digest-preview.vercel.app%2Fapi%2Fbadges%2Fkw-coverage"></a>
 </p>
 
 <p>

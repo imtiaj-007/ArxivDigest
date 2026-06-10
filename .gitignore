@@ -63,3 +63,10 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Eval debug artifacts — canonical eval results land in the eval_runs DB
+# table (step 2 of the 2026-06-10 DB migration). last_report.json is kept
+# as a local-only debug log written by `arxivdigest eval`; history.jsonl
+# is fully legacy (only read by the one-off `backfill-eval-history` CLI).
+evals/last_report.json
+evals/metrics/history.jsonl

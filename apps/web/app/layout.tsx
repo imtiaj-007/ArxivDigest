@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Geist, Geist_Mono } from "next/font/google";
 import { RootProvider } from "fumadocs-ui/provider/next";
+import { MotionProvider } from "@/components/aceternity/motion-provider";
 import { cn } from "@/lib/utils";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -31,7 +32,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col">
-        <RootProvider>{children}</RootProvider>
+        <MotionProvider>
+          <RootProvider>{children}</RootProvider>
+        </MotionProvider>
       </body>
     </html>
   );

@@ -3,6 +3,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   real,
   text,
@@ -66,9 +67,36 @@ export const runs = pgTable(
   (t) => [index("runs_started_at_idx").on(t.startedAt.desc())],
 );
 
+// Each `arxivdigest eval` invocation appends one row. Replaces the JSONL-in-git
+// pattern from V0 W4 — the file approach polluted git history and tripped main's
+// branch protection. The DB lets /docs/evals/history, /about, /docs/evals
+// overview, and the README badge endpoints all read from a single source.
+// `perPaper` is the full per-paper detail (heavy; ~10-50 KB per row); kept nullable
+// so backfilled rows from the old JSONL summary work without it.
+export const evalRuns = pgTable(
+  "eval_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ranAt: timestamp("ran_at", { withTimezone: true }).notNull(),
+    gitSha: text("git_sha"),
+    processed: integer("processed").notNull(),
+    total: integer("total").notNull(),
+    microF1: real("micro_f1").notNull(),
+    macroF1: real("macro_f1").notNull(),
+    schemaValidityRate: real("schema_validity_rate").notNull(),
+    avgKeywordCoverage: real("avg_keyword_coverage").notNull(),
+    perThemeF1: jsonb("per_theme_f1").notNull().default(sql`'{}'::jsonb`),
+    perPaper: jsonb("per_paper"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("eval_runs_ran_at_idx").on(t.ranAt.desc())],
+);
+
 export type Paper = typeof papers.$inferSelect;
 export type NewPaper = typeof papers.$inferInsert;
 export type Digest = typeof digests.$inferSelect;
 export type NewDigest = typeof digests.$inferInsert;
 export type Run = typeof runs.$inferSelect;
 export type NewRun = typeof runs.$inferInsert;
+export type EvalRun = typeof evalRuns.$inferSelect;
+export type NewEvalRun = typeof evalRuns.$inferInsert;
