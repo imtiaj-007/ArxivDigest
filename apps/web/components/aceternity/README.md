@@ -22,4 +22,5 @@ Add new components below as they land.
 
 | Component | Page using it | Notes |
 |---|---|---|
-| `motion-provider.tsx` | site root | LazyMotion + reduced-motion hook (Phase 1.0 smoke test) |
+| `motion-provider.tsx` | site root | LazyMotion + reduced-motion hook (Phase 1.0 foundation) |
+| `background-beams.tsx` | `/` hero | 19 staggered SVG paths, gradient-stroked, reduced-motion-aware. Local fork of [ui.aceternity.com/components/background-beams](https://ui.aceternity.com/components/background-beams) |
