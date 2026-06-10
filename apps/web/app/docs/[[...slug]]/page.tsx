@@ -9,6 +9,12 @@ import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
 import type { Metadata } from "next";
 
+// ISR: regenerate every 5 minutes so the EvalMetricsCard on /docs/evals and
+// the EvalHistoryTable on /docs/evals/history pick up new rows from the DB
+// shortly after the cron lands. Static-content doc pages produce identical
+// output on each regen — Next's deduplication makes those near-free.
+export const revalidate = 300;
+
 export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
 }) {

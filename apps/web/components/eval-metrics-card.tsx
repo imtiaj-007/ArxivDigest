@@ -1,21 +1,48 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { getDb } from "@repo/db/client";
+import { evalRuns } from "@repo/db/schema";
+import { desc } from "drizzle-orm";
 import { Activity, CheckCircle2, Sparkles, TrendingUp } from "lucide-react";
 
-type EvalReport = {
-  timestamp: string;
+type LatestEvalRun = {
+  timestamp: Date;
   total: number;
   processed: number;
-  schema_validity_rate: number;
-  avg_keyword_coverage: number;
-  classification: { micro_f1: number; macro_f1: number };
-  per_theme_f1?: Record<string, number>;
+  schemaValidityRate: number;
+  avgKeywordCoverage: number;
+  microF1: number;
+  macroF1: number;
+  perThemeF1: Record<string, number>;
 };
 
-function loadEvalReport(): EvalReport | null {
+async function loadLatestEvalRun(): Promise<LatestEvalRun | null> {
   try {
-    const path = join(process.cwd(), "..", "..", "evals", "last_report.json");
-    return JSON.parse(readFileSync(path, "utf-8")) as EvalReport;
+    const rows = await getDb()
+      .select({
+        ranAt: evalRuns.ranAt,
+        total: evalRuns.total,
+        processed: evalRuns.processed,
+        schemaValidityRate: evalRuns.schemaValidityRate,
+        avgKeywordCoverage: evalRuns.avgKeywordCoverage,
+        microF1: evalRuns.microF1,
+        macroF1: evalRuns.macroF1,
+        perThemeF1: evalRuns.perThemeF1,
+      })
+      .from(evalRuns)
+      .orderBy(desc(evalRuns.ranAt))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) return null;
+    return {
+      timestamp: row.ranAt,
+      total: row.total,
+      processed: row.processed,
+      schemaValidityRate: row.schemaValidityRate,
+      avgKeywordCoverage: row.avgKeywordCoverage,
+      microF1: row.microF1,
+      macroF1: row.macroF1,
+      perThemeF1: (row.perThemeF1 ?? {}) as Record<string, number>,
+    };
   } catch {
     return null;
   }
@@ -36,8 +63,8 @@ function statusFor(metric: keyof typeof FLOORS, value: number): "ok" | "low" {
   return value >= FLOORS[metric] ? "ok" : "low";
 }
 
-export function EvalMetricsCard() {
-  const report = loadEvalReport();
+export async function EvalMetricsCard() {
+  const report = await loadLatestEvalRun();
   if (!report) {
     return (
       <div className="my-6 rounded-lg border border-dashed border-fd-border bg-fd-card p-6 text-sm text-fd-muted-foreground">
@@ -47,7 +74,7 @@ export function EvalMetricsCard() {
     );
   }
 
-  const ts = new Date(report.timestamp);
+  const ts = report.timestamp;
   const metrics: Array<{
     label: string;
     value: number;
@@ -57,37 +84,35 @@ export function EvalMetricsCard() {
   }> = [
     {
       label: "Micro F1",
-      value: report.classification.micro_f1,
+      value: report.microF1,
       floor: FLOORS.micro_f1,
       key: "micro_f1",
       icon: TrendingUp,
     },
     {
       label: "Macro F1",
-      value: report.classification.macro_f1,
+      value: report.macroF1,
       floor: FLOORS.macro_f1,
       key: "macro_f1",
       icon: Activity,
     },
     {
       label: "Schema validity",
-      value: report.schema_validity_rate,
+      value: report.schemaValidityRate,
       floor: FLOORS.schema_validity_rate,
       key: "schema_validity_rate",
       icon: CheckCircle2,
     },
     {
       label: "Keyword coverage",
-      value: report.avg_keyword_coverage,
+      value: report.avgKeywordCoverage,
       floor: FLOORS.avg_keyword_coverage,
       key: "avg_keyword_coverage",
       icon: Sparkles,
     },
   ];
 
-  const perTheme = report.per_theme_f1
-    ? Object.entries(report.per_theme_f1).sort((a, b) => b[1] - a[1])
-    : [];
+  const perTheme = Object.entries(report.perThemeF1).sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="my-6 rounded-lg border border-fd-border bg-fd-card">
