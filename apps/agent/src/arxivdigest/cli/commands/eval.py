@@ -26,7 +26,11 @@ log = structlog.get_logger()
 
 # apps/agent/src/arxivdigest/cli/commands/eval.py → repo root is parents[6]
 _REPO_ROOT = Path(__file__).resolve().parents[6]
+# `evals/last_report.json` is kept as a local-only debug artifact (gitignored);
+# the eval_runs DB table is the canonical source for everything user-facing.
 DEFAULT_REPORT_PATH = _REPO_ROOT / "evals" / "last_report.json"
+# Legacy JSONL path — backfill-eval-history still reads it on demand; nothing
+# else writes to it after step 3 of the DB migration.
 HISTORY_PATH = _REPO_ROOT / "evals" / "metrics" / "history.jsonl"
 DEFAULT_BASELINE_PATH = _REPO_ROOT / "evals" / "baseline.json"
 
@@ -56,11 +60,11 @@ async def _run(
 async def _persist_to_db(repository: PostgresRepository, report: EvalReport) -> None:
     """Best-effort eval row insert. Logs and swallows on failure.
 
-    Replaces the JSONL-in-git pattern from V0 W4 — that fought branch
-    protection and grew the repo by a row per day forever. Here we keep
-    the JSONL append as a fallback record (still written by _append_history
-    later) so the cron stays green even if the DB write fails (e.g. the
-    eval_runs migration hasn't been applied yet).
+    Canonical sink for eval results — replaces the JSONL-in-git pattern from
+    V0 W4 that fought main's branch protection and grew the repo a row per
+    day forever. Errors are swallowed so a transient connection failure
+    doesn't fail the eval gate; the last_report.json on disk is the only
+    local-debug record left, and re-running `arxivdigest eval` recovers it.
     """
     try:
         await repository.insert_eval_run(
@@ -114,9 +118,8 @@ def eval_cmd(
         report = asyncio.run(_run(ground_truth, limit, git_sha))
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report.model_dump(mode="json"), indent=2) + "\n")
-    _append_history(report)
     typer.echo(report.summary())
-    typer.echo(f"report written to {output}")
+    typer.echo(f"report written to {output} (local debug artifact only)")
     if fail_on_regression:
         _enforce_baseline(report)
 
@@ -246,25 +249,3 @@ async def _backfill_async(rows: list[dict[str, object]]) -> None:
         )
 
 
-def _append_history(report: EvalReport) -> None:
-    """Append a compact one-line summary of this run for trend tracking."""
-    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    line = {
-        "timestamp": report.timestamp.isoformat(),
-        "git_sha": report.git_sha,
-        "processed": report.processed,
-        "total": report.total,
-        "schema_validity_rate": round(report.schema_validity_rate, 4),
-        "micro_f1": round(report.classification["micro_f1"], 4),
-        "macro_f1": round(report.classification["macro_f1"], 4),
-        "avg_keyword_coverage": round(report.avg_keyword_coverage, 4),
-        # Per-theme F1 lets the history page show theme-level trends without
-        # round-tripping through last_report.json (which only holds the
-        # most recent run). Sorted by key for stable diffs across commits.
-        "per_theme_f1": {
-            theme: round(score, 4)
-            for theme, score in sorted(report.per_theme_f1.items())
-        },
-    }
-    with HISTORY_PATH.open("a") as f:
-        f.write(json.dumps(line) + "\n")
